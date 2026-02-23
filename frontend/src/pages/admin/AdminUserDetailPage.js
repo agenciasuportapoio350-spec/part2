@@ -67,12 +67,25 @@ export default function AdminUserDetailPage() {
   };
 
   const handleToggleStatus = async () => {
-    const newStatus = user.status === "active" ? "blocked" : "active";
+    const newStatus = user.status === "blocked" ? "active" : "blocked";
     if (!window.confirm(`Tem certeza que deseja ${newStatus === "blocked" ? "bloquear" : "desbloquear"} este usuário?`)) return;
     
     try {
       await api.put(`/admin/users/${id}/status`, { status: newStatus });
-      toast.success(`Usuário ${newStatus === "blocked" ? "bloqueado" : "desbloqueado"}`);
+      toast.success(`Usuário ${newStatus === "blocked" ? "bloqueado" : "ativado"}`);
+      fetchUser();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erro ao atualizar status");
+    }
+  };
+
+  const handlePauseUser = async () => {
+    const newStatus = user.status === "paused" ? "active" : "paused";
+    if (!window.confirm(`Tem certeza que deseja ${newStatus === "paused" ? "pausar" : "reativar"} este usuário?`)) return;
+    
+    try {
+      await api.put(`/admin/users/${id}/status`, { status: newStatus });
+      toast.success(`Usuário ${newStatus === "paused" ? "pausado" : "reativado"}`);
       fetchUser();
     } catch (error) {
       toast.error(error.response?.data?.detail || "Erro ao atualizar status");
