@@ -950,7 +950,7 @@ async def update_user_status(user_id: str, data: UserStatusUpdate, admin: dict =
     
     # Prevent blocking yourself or other super admins
     if user.get("role") == "SUPER_ADMIN":
-        raise HTTPException(status_code=400, detail="Não é possível bloquear um Super Admin")
+        raise HTTPException(status_code=400, detail="Não é possível alterar status de um Super Admin")
     
     old_status = user.get("status", "active")
     await db.users.update_one(
@@ -959,10 +959,20 @@ async def update_user_status(user_id: str, data: UserStatusUpdate, admin: dict =
     )
     
     # Audit log
-    action = "block_user" if data.status == "blocked" else "unblock_user"
+    action_map = {
+        "blocked": "block_user",
+        "paused": "pause_user", 
+        "active": "activate_user"
+    }
+    action = action_map.get(data.status, "update_status")
     await create_audit_log(admin, action, user_id, user["email"], {"old_status": old_status, "new_status": data.status})
     
-    return {"message": f"Usuário {'bloqueado' if data.status == 'blocked' else 'desbloqueado'} com sucesso"}
+    status_messages = {
+        "blocked": "bloqueado",
+        "paused": "pausado",
+        "active": "ativado"
+    }
+    return {"message": f"Usuário {status_messages.get(data.status, 'atualizado')} com sucesso"}
 
 # Update User Role
 @api_router.put("/admin/users/{user_id}/role")
