@@ -111,21 +111,19 @@ function AppRoutes() {
 
 function App() {
   return (
-    <>
-      <Toaster 
-        position="top-right" 
-        richColors 
-        closeButton
-        toastOptions={{
-          style: { background: 'white' },
-        }}
-      />
+    <BrowserRouter>
       <AuthProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
+        <AppRoutes />
+        <Toaster 
+          position="top-right" 
+          richColors 
+          closeButton
+          toastOptions={{
+            style: { background: 'white' },
+          }}
+        />
       </AuthProvider>
-    </>
+    </BrowserRouter>
   );
 }
 
