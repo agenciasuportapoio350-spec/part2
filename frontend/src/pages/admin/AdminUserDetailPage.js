@@ -10,7 +10,7 @@ import { Badge } from "../../components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "../../components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Mail, Calendar, Shield, CreditCard, Users, Target, DollarSign, LogIn, Ban, UserCog, Key, Trash2, Edit, Loader2 } from "lucide-react";
+import { ArrowLeft, Mail, Calendar, Shield, CreditCard, Users, Target, DollarSign, LogIn, Ban, UserCog, Key, Trash2, Edit, Loader2, Pause, Play } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
 export default function AdminUserDetailPage() {
