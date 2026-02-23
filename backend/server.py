@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 # ============ CONSTANTS ============
 
 ROLES = ["USER", "ADMIN", "SUPER_ADMIN"]
-USER_STATUS = ["active", "blocked"]
+USER_STATUS = ["active", "paused", "blocked"]
 PLAN_NAMES = ["free", "starter", "pro", "enterprise"]
 PLAN_STATUS = ["active", "overdue", "canceled"]
 
