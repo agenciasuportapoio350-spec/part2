@@ -1,0 +1,184 @@
+{
+  "identity": {
+    "name": "RankFlow - Corporate Minimalist SaaS",
+    "persona": "E1 - The Anti-AI Designer",
+    "tone": "Professional, Efficient, Trustworthy, Fluid",
+    "theme_mode": "light",
+    "archetype": "Swiss & High-Contrast (Modified for SaaS)"
+  },
+  "typography": {
+    "fonts": {
+      "heading": {
+        "name": "Plus Jakarta Sans",
+        "url": "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap",
+        "usage": "Headings, Navigation, Buttons",
+        "weights": ["500", "600", "700"]
+      },
+      "body": {
+        "name": "DM Sans",
+        "url": "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap",
+        "usage": "Body text, Descriptions, Labels",
+        "weights": ["400", "500"]
+      },
+      "mono": {
+        "name": "JetBrains Mono",
+        "url": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap",
+        "usage": "Financial Data, IDs, Dates, Code",
+        "weights": ["400", "500"]
+      }
+    },
+    "scale": {
+      "h1": "text-4xl md:text-5xl font-bold tracking-tight leading-tight",
+      "h2": "text-3xl font-bold tracking-tight",
+      "h3": "text-2xl font-semibold tracking-tight",
+      "h4": "text-xl font-semibold tracking-tight",
+      "body_lg": "text-lg leading-relaxed text-slate-600",
+      "body": "text-base leading-relaxed text-slate-600",
+      "small": "text-sm font-medium text-slate-500",
+      "tiny": "text-xs font-medium uppercase tracking-wider text-slate-400"
+    }
+  },
+  "colors": {
+    "primary": {
+      "DEFAULT": "#1e1b4b",
+      "foreground": "#ffffff",
+      "description": "Midnight Blue - Authority and Rank"
+    },
+    "secondary": {
+      "DEFAULT": "#f1f5f9",
+      "foreground": "#1e293b",
+      "description": "Slate 100 - Subtle background for secondary actions"
+    },
+    "accent": {
+      "DEFAULT": "#6366f1",
+      "foreground": "#ffffff",
+      "description": "Electric Indigo - Flow and Action"
+    },
+    "background": {
+      "DEFAULT": "#f8fafc",
+      "paper": "#ffffff",
+      "subtle": "#f1f5f9"
+    },
+    "status": {
+      "success": "#10b981",
+      "warning": "#f59e0b",
+      "error": "#ef4444",
+      "info": "#3b82f6"
+    },
+    "border": {
+      "DEFAULT": "#e2e8f0",
+      "hover": "#cbd5e1"
+    },
+    "text": {
+      "main": "#0f172a",
+      "muted": "#64748b",
+      "inverted": "#ffffff"
+    }
+  },
+  "layout_strategy": {
+    "container": "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8",
+    "spacing": {
+      "section_gap": "gap-8 md:gap-12",
+      "card_padding": "p-6",
+      "element_gap": "gap-4"
+    },
+    "dashboard_grid": {
+      "type": "bento",
+      "classes": "grid grid-cols-1 md:grid-cols-12 gap-6",
+      "areas": {
+        "sidebar": "hidden md:block md:col-span-2 lg:col-span-2",
+        "main": "col-span-1 md:col-span-10 lg:col-span-10",
+        "hero_card": "col-span-1 md:col-span-8 lg:col-span-9",
+        "stat_card": "col-span-1 md:col-span-4 lg:col-span-3"
+      }
+    },
+    "kanban": {
+      "container": "flex gap-6 overflow-x-auto pb-8 snap-x snap-mandatory",
+      "column": "min-w-[320px] max-w-[320px] bg-slate-50 rounded-xl p-4 border border-slate-200 snap-center h-fit max-h-[calc(100vh-200px)] overflow-y-auto"
+    }
+  },
+  "components": {
+    "cards": {
+      "base": "bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200",
+      "header": "px-6 py-4 border-b border-slate-100 flex justify-between items-center",
+      "body": "p-6"
+    },
+    "buttons": {
+      "primary": "bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 rounded-lg font-medium transition-colors duration-200 shadow-sm",
+      "secondary": "bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 h-10 px-4 py-2 rounded-lg font-medium transition-colors duration-200",
+      "ghost": "hover:bg-slate-100 text-slate-600 hover:text-slate-900 h-10 px-4 py-2 rounded-lg font-medium transition-colors duration-200",
+      "destructive": "bg-red-50 text-red-600 hover:bg-red-100 h-10 px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+    },
+    "inputs": {
+      "base": "flex h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200"
+    },
+    "badges": {
+      "base": "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+      "variants": {
+        "default": "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
+        "secondary": "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        "outline": "text-foreground border border-slate-200",
+        "success": "border-transparent bg-emerald-100 text-emerald-700 hover:bg-emerald-200",
+        "warning": "border-transparent bg-amber-100 text-amber-700 hover:bg-amber-200"
+      }
+    }
+  },
+  "visual_enhancers": {
+    "shadows": {
+      "card": "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
+      "dropdown": "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+      "modal": "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)"
+    },
+    "borders": "border border-slate-200",
+    "glass": "bg-white/80 backdrop-blur-md border border-white/20 shadow-sm"
+  },
+  "images": {
+    "avatars": [
+      {
+        "url": "https://images.unsplash.com/photo-1762522926157-bcc04bf0b10a?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "description": "Man in white shirt",
+        "category": "user_avatar"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1769636929261-e913ed023c83?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "description": "Man in dark cardigan",
+        "category": "team_member"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1758599543120-4e462429a4d7?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "description": "Woman in blue shirt",
+        "category": "client_avatar"
+      }
+    ],
+    "backgrounds": [
+      {
+        "url": "https://images.pexels.com/photos/35696867/pexels-photo-35696867.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Abstract angular building facade",
+        "category": "login_background"
+      }
+    ]
+  },
+  "universal_guidelines": [
+    "NEVER use generic 'SaaS Blue' gradients. Stick to solid, authoritative colors.",
+    "Data density is key for this dashboard. Use tight spacing in tables but generous spacing in layout containers.",
+    "Kanban columns must feel like 'swimlanes' - distinct but connected.",
+    "Use 'JetBrains Mono' for all monetary values and dates to ensure alignment.",
+    "Interactive elements MUST have a visible focus state for accessibility.",
+    "All buttons must have a subtle transition on hover (transform, shadow, or color).",
+    "Avoid 'Inter' for headings. Use 'Plus Jakarta Sans' to give it a modern fintech vibe.",
+    "Ensure high contrast for text (Slate 600+ on White/Slate 50).",
+    "Use 'sonner' for all toast notifications.",
+    "Components must be modular. Don't build monolithic page components."
+  ],
+  "instructions_to_main_agent": [
+    "Implement the 'Auth' flow using JWT.",
+    "Create the 'Dashboard' with a Bento Grid layout showing: Key Metrics (Top), Recent Activity (List), and Revenue Chart (Chart).",
+    "Build the 'CRM Pipeline' using a horizontal scroll container with Drag-and-Drop (dnd-kit or react-beautiful-dnd).",
+    "Develop the 'Finance' module as a clean data table with sorting and filtering.",
+    "Use 'recharts' for any data visualization (Revenue, Leads).",
+    "Ensure all forms use 'react-hook-form' + 'zod' for validation.",
+    "Follow the file structure: /components/features/[module_name] for domain logic.",
+    "Use the provided image URLs for mock data.",
+    "Apply 'data-testid' to all interactive elements."
+  ]
+}

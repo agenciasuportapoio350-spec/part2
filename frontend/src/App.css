@@ -1,34 +1,150 @@
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+/* RankFlow Custom Styles */
+
+/* Login background */
+.login-bg {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+/* Sidebar styles */
+.sidebar-link {
+    @apply flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-100 hover:text-slate-900 rounded-lg transition-all duration-200;
 }
 
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+.sidebar-link.active {
+    @apply bg-primary/10 text-primary font-medium;
 }
 
-.App-link {
-    color: #61dafb;
+/* Card hover effect */
+.card-hover {
+    @apply transition-all duration-200 hover:shadow-md hover:border-slate-300;
 }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+/* Kanban column */
+.kanban-column {
+    @apply bg-slate-50 rounded-xl border border-slate-200 min-w-[320px] max-w-[320px] flex-shrink-0;
+}
+
+.kanban-column-header {
+    @apply px-4 py-3 border-b border-slate-200 font-semibold text-slate-700;
+}
+
+.kanban-column-body {
+    @apply p-3 space-y-3 min-h-[200px] max-h-[calc(100vh-280px)] overflow-y-auto;
+}
+
+/* Lead card */
+.lead-card {
+    @apply bg-white rounded-lg border border-slate-200 p-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer;
+}
+
+/* Status badges */
+.badge-novo_lead {
+    @apply bg-blue-100 text-blue-700;
+}
+
+.badge-contato_feito {
+    @apply bg-purple-100 text-purple-700;
+}
+
+.badge-reuniao {
+    @apply bg-amber-100 text-amber-700;
+}
+
+.badge-proposta {
+    @apply bg-cyan-100 text-cyan-700;
+}
+
+.badge-fechado {
+    @apply bg-emerald-100 text-emerald-700;
+}
+
+.badge-perdido {
+    @apply bg-red-100 text-red-700;
+}
+
+/* Payment status */
+.payment-paid {
+    @apply bg-emerald-100 text-emerald-700;
+}
+
+.payment-pending {
+    @apply bg-amber-100 text-amber-700;
+}
+
+/* Task type badges */
+.task-onboarding {
+    @apply bg-violet-100 text-violet-700;
+}
+
+.task-recorrente {
+    @apply bg-blue-100 text-blue-700;
+}
+
+.task-follow_up {
+    @apply bg-amber-100 text-amber-700;
+}
+
+.task-outro {
+    @apply bg-slate-100 text-slate-700;
+}
+
+/* Currency display */
+.currency {
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* Stats card */
+.stat-card {
+    @apply bg-white rounded-xl border border-slate-200 p-6 shadow-sm;
+}
+
+.stat-value {
+    @apply text-3xl font-bold text-slate-900 font-mono;
+}
+
+.stat-label {
+    @apply text-sm text-slate-500 mt-1;
+}
+
+/* Table styles */
+.data-table {
+    @apply w-full text-sm;
+}
+
+.data-table th {
+    @apply text-left text-xs font-semibold text-slate-500 uppercase tracking-wider py-3 px-4 border-b border-slate-200;
+}
+
+.data-table td {
+    @apply py-4 px-4 border-b border-slate-100;
+}
+
+.data-table tr:hover td {
+    @apply bg-slate-50;
+}
+
+/* Form styles */
+.form-group {
+    @apply space-y-2;
+}
+
+.form-label {
+    @apply text-sm font-medium text-slate-700;
+}
+
+/* Empty state */
+.empty-state {
+    @apply flex flex-col items-center justify-center py-12 text-center;
+}
+
+.empty-state-icon {
+    @apply w-16 h-16 text-slate-300 mb-4;
+}
+
+.empty-state-title {
+    @apply text-lg font-semibold text-slate-700;
+}
+
+.empty-state-description {
+    @apply text-sm text-slate-500 mt-1;
 }
