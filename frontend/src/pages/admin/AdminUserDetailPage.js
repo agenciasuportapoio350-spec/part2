@@ -367,13 +367,24 @@ export default function AdminUserDetailPage() {
             
             <Button 
               variant="outline" 
-              className={`gap-2 h-auto py-4 flex-col ${user.status === "active" ? "border-amber-600 text-amber-400 hover:bg-amber-950" : "border-emerald-600 text-emerald-400 hover:bg-emerald-950"}`}
+              className={`gap-2 h-auto py-4 flex-col ${user.status === "paused" ? "border-emerald-600 text-emerald-400 hover:bg-emerald-950" : "border-amber-600 text-amber-400 hover:bg-amber-950"}`}
+              onClick={handlePauseUser}
+              disabled={isSuperAdmin}
+              data-testid="pause-user-btn"
+            >
+              {user.status === "paused" ? <Play className="w-5 h-5" /> : <Pause className="w-5 h-5" />}
+              <span className="text-xs">{user.status === "paused" ? "Reativar" : "Pausar"}</span>
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              className={`gap-2 h-auto py-4 flex-col ${user.status === "blocked" ? "border-emerald-600 text-emerald-400 hover:bg-emerald-950" : "border-red-600 text-red-400 hover:bg-red-950"}`}
               onClick={handleToggleStatus}
               disabled={isSuperAdmin}
               data-testid="toggle-status-btn"
             >
               <Ban className="w-5 h-5" />
-              <span className="text-xs">{user.status === "active" ? "Bloquear" : "Desbloquear"}</span>
+              <span className="text-xs">{user.status === "blocked" ? "Desbloquear" : "Bloquear"}</span>
             </Button>
             
             <Button 
