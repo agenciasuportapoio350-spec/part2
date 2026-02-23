@@ -179,6 +179,9 @@ export default function AdminUserDetailPage() {
     if (status === "active") {
       return <Badge className="bg-emerald-500/20 text-emerald-400 border-0">Ativo</Badge>;
     }
+    if (status === "paused") {
+      return <Badge className="bg-amber-500/20 text-amber-400 border-0">Pausado</Badge>;
+    }
     return <Badge className="bg-red-500/20 text-red-400 border-0">Bloqueado</Badge>;
   };
 
