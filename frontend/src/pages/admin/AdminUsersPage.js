@@ -198,6 +198,7 @@ export default function AdminUsersPage() {
               <SelectContent className="bg-slate-700 border-slate-600">
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="active">Ativos</SelectItem>
+                <SelectItem value="paused">Pausados</SelectItem>
                 <SelectItem value="blocked">Bloqueados</SelectItem>
               </SelectContent>
             </Select>
