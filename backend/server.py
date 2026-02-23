@@ -361,6 +361,9 @@ async def login(data: UserLogin):
     if user.get("status") == "blocked":
         raise HTTPException(status_code=403, detail="Usuário bloqueado. Entre em contato com o suporte.")
     
+    if user.get("status") == "paused":
+        raise HTTPException(status_code=403, detail="Conta pausada temporariamente. Entre em contato com o suporte.")
+    
     # Update last login
     now = datetime.now(timezone.utc).isoformat()
     await db.users.update_one({"id": user["id"]}, {"$set": {"last_login_at": now}})
