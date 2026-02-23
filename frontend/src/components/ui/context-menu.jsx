@@ -43,7 +43,7 @@ const ContextMenuSubContent = React.forwardRef(({ className, ...props }, ref) =>
 ContextMenuSubContent.displayName = ContextMenuPrimitive.SubContent.displayName
 
 const ContextMenuContent = React.forwardRef(({ className, ...props }, ref) => (
-  <ContextMenuPrimitive.Portal>
+  <ContextMenuPrimitive.Portal container={document.getElementById('portal-root')}>
     <ContextMenuPrimitive.Content
       ref={ref}
       className={cn(
