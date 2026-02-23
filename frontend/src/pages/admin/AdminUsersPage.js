@@ -276,16 +276,35 @@ export default function AdminUsersPage() {
                             {user.role !== "SUPER_ADMIN" && (
                               <>
                                 <DropdownMenuItem 
-                                  className="text-slate-200 focus:bg-slate-600 focus:text-white cursor-pointer"
+                                  className="text-amber-400 focus:bg-slate-600 focus:text-amber-300 cursor-pointer"
+                                  onClick={() => handlePauseUser(user.id, user.status)}
+                                  data-testid={`pause-user-${user.id}`}
+                                >
+                                  {user.status === "paused" ? (
+                                    <>
+                                      <Play className="w-4 h-4 mr-2" />
+                                      Reativar
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Pause className="w-4 h-4 mr-2" />
+                                      Pausar
+                                    </>
+                                  )}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  className="text-red-400 focus:bg-slate-600 focus:text-red-300 cursor-pointer"
                                   onClick={() => handleToggleStatus(user.id, user.status)}
+                                  data-testid={`block-user-${user.id}`}
                                 >
                                   <Ban className="w-4 h-4 mr-2" />
-                                  {user.status === "active" ? "Bloquear" : "Desbloquear"}
+                                  {user.status === "blocked" ? "Desbloquear" : "Bloquear"}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator className="bg-slate-600" />
                                 <DropdownMenuItem 
-                                  className="text-amber-400 focus:bg-slate-600 focus:text-amber-300 cursor-pointer"
+                                  className="text-blue-400 focus:bg-slate-600 focus:text-blue-300 cursor-pointer"
                                   onClick={() => handleImpersonate(user.id, user.name)}
+                                  data-testid={`impersonate-user-${user.id}`}
                                 >
                                   <LogIn className="w-4 h-4 mr-2" />
                                   Impersonar
