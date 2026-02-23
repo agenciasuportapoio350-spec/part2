@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "../../components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../../components/ui/dialog";
 import { toast } from "sonner";
-import { Search, MoreVertical, Eye, Ban, LogIn, RefreshCw, Plus, UserPlus } from "lucide-react";
+import { Search, MoreVertical, Eye, Ban, LogIn, RefreshCw, Plus, UserPlus, Pause, Play } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
 export default function AdminUsersPage() {
