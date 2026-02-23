@@ -15,21 +15,13 @@ Desenvolver um SaaS MVP chamado RankFlow - sistema operacional para gestores de 
 2. **Agência de Marketing Digital** - Oferece serviços de gestão para clientes locais
 3. **Consultor de SEO Local** - Trabalha com otimização de perfis empresariais
 
-## Core Requirements (MVP)
-- [x] Autenticação JWT (registro/login)
-- [x] CRM de Vendas com Pipeline visual (Kanban)
-- [x] Gestão de Clientes com checklist de onboarding
-- [x] Tarefas recorrentes mensais
-- [x] Agenda com filtros (hoje/semana/follow-ups)
-- [x] Controle financeiro básico
-
 ## Arquitetura Técnica
-- **Frontend:** React + TailwindCSS + Shadcn UI
+- **Frontend:** React + TailwindCSS + Shadcn UI + Radix UI
 - **Backend:** FastAPI + MongoDB
 - **Autenticação:** JWT com bcrypt
 - **Design:** Minimalista corporativo (Plus Jakarta Sans + DM Sans + JetBrains Mono)
 
-## O que foi Implementado (22/02/2026)
+## O que foi Implementado
 
 ### Módulos Completos
 1. **Autenticação**
@@ -67,6 +59,22 @@ Desenvolver um SaaS MVP chamado RankFlow - sistema operacional para gestores de 
    - Pipeline de vendas resumido
    - Receita do mês
 
+7. **Painel Admin Master**
+   - Gestão de usuários
+   - Logs de auditoria
+   - Estatísticas globais
+   - Impersonar usuários
+
+## Bugs Corrigidos (23/02/2026)
+
+### Bug: removeChild Error
+- **Problema:** Erro "Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node" ao abrir modais
+- **Causa:** Conflito entre React.StrictMode e portais do Radix UI
+- **Solução:** 
+  1. Removido React.StrictMode do index.js
+  2. Adicionado container específico `#portal-root` no index.html
+  3. Atualizado todos os componentes UI (dialog, sheet, alert-dialog, dropdown-menu, select, popover, tooltip, drawer) para usar o container específico
+
 ## Prioritized Backlog
 
 ### P0 (MVP - Concluído)
@@ -78,6 +86,7 @@ Desenvolver um SaaS MVP chamado RankFlow - sistema operacional para gestores de 
 - [x] Tarefas recorrentes
 - [x] Agenda com filtros
 - [x] Controle financeiro
+- [x] Painel Admin Master
 
 ### P1 (Próximas Features)
 - [ ] Drag and drop no Kanban
@@ -92,6 +101,7 @@ Desenvolver um SaaS MVP chamado RankFlow - sistema operacional para gestores de 
 - [ ] Dashboard com gráficos
 - [ ] Importação de leads via CSV
 - [ ] API pública
+- [ ] Integração com WhatsApp
 
 ## Next Action Items
 1. Implementar drag-and-drop no pipeline Kanban
