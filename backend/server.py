@@ -246,6 +246,8 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             raise HTTPException(status_code=401, detail="Usuário não encontrado")
         if user.get("status") == "blocked":
             raise HTTPException(status_code=403, detail="Usuário bloqueado")
+        if user.get("status") == "paused":
+            raise HTTPException(status_code=403, detail="Conta pausada temporariamente")
         # Add impersonation info to user object
         user["_original_user_id"] = payload.get("original_user_id")
         user["_is_impersonating"] = payload.get("original_user_id") is not None
