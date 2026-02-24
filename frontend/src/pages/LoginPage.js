@@ -57,9 +57,9 @@ export default function LoginPage() {
         />
         <div className="relative z-10 flex flex-col justify-center px-16">
           <img 
-            src="/logo-full.png" 
+            src="/logo-login.png" 
             alt="RankFlow" 
-            className="h-16 w-auto mb-6"
+            className="h-20 w-auto mb-6"
           />
           <p className="text-xl text-white/80 leading-relaxed max-w-md">
             Sistema operacional para gestores de Google Empresas. Organize vendas, entregas e financeiro em um só lugar.
