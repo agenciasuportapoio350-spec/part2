@@ -56,9 +56,11 @@ export default function LoginPage() {
           }}
         />
         <div className="relative z-10 flex flex-col justify-center px-16">
-          <h1 className="text-5xl font-bold text-white tracking-tight mb-6">
-            RankFlow
-          </h1>
+          <img 
+            src="/logo-full.png" 
+            alt="RankFlow" 
+            className="h-16 w-auto mb-6"
+          />
           <p className="text-xl text-white/80 leading-relaxed max-w-md">
             Sistema operacional para gestores de Google Empresas. Organize vendas, entregas e financeiro em um só lugar.
           </p>
