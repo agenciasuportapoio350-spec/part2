@@ -60,10 +60,13 @@ export default function Layout() {
       {/* Sidebar - Desktop */}
       <aside className={`hidden md:flex md:w-64 bg-white border-r border-slate-200 flex-col ${isImpersonating ? 'pt-12' : ''}`}>
         <div className="p-6 border-b border-slate-200">
-          <h1 className="text-2xl font-bold text-primary tracking-tight" data-testid="logo">
-            RankFlow
-          </h1>
-          <p className="text-xs text-slate-500 mt-1">Sistema de Gestão</p>
+          <img 
+            src="/logo-full.png" 
+            alt="RankFlow" 
+            className="h-10 w-auto"
+            data-testid="logo"
+          />
+          <p className="text-xs text-slate-500 mt-2">Sistema de Gestão</p>
         </div>
         
         <nav className="flex-1 p-4 space-y-1">
