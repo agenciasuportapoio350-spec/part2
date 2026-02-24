@@ -81,6 +81,11 @@ class UserFullResponse(BaseModel):
     created_at: str
     updated_at: str
 
+# User Settings Model
+class UserSettingsUpdate(BaseModel):
+    monthly_goal: Optional[float] = None
+    leads_alert_days: Optional[int] = None  # Dias sem contato para gerar alerta
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
