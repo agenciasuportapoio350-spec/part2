@@ -137,7 +137,11 @@ export default function Layout() {
       {/* Mobile Header */}
       <div className={`md:hidden fixed ${isImpersonating ? 'top-12' : 'top-0'} left-0 right-0 z-40 bg-white border-b border-slate-200 px-4 py-3`}>
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-primary">RankFlow</h1>
+          <img 
+            src="/logo-full.png" 
+            alt="RankFlow" 
+            className="h-8 w-auto"
+          />
           <Button 
             variant="ghost" 
             size="icon"
