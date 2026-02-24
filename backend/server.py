@@ -723,58 +723,137 @@ async def delete_payment(payment_id: str, user: dict = Depends(get_current_user)
 
 @api_router.get("/dashboard/stats")
 async def get_dashboard_stats(user: dict = Depends(get_current_user)):
+    now = datetime.now(timezone.utc)
+    today = now.date()
+    current_month = now.month
+    current_year = now.year
+    
+    # Configurações do usuário
+    user_settings = user.get("settings", {})
+    monthly_goal = user_settings.get("monthly_goal", 0)
+    leads_alert_days = user_settings.get("leads_alert_days", 7)
+    
     # Count leads by stage
     leads = await db.leads.find({"user_id": user["id"]}, {"_id": 0}).to_list(1000)
     leads_by_stage = {}
     total_pipeline_value = 0
+    
+    # Alertas de leads sem contato
+    alerts = []
+    stale_leads_count = 0
+    cutoff_date = now - timedelta(days=leads_alert_days)
+    
     for lead in leads:
         stage = lead.get("stage", "novo_lead")
         leads_by_stage[stage] = leads_by_stage.get(stage, 0) + 1
-        if stage not in ["perdido"]:
+        if stage not in ["perdido", "fechado"]:
             total_pipeline_value += lead.get("contract_value", 0)
+            # Verificar leads parados
+            updated_at = lead.get("updated_at", lead.get("created_at", ""))
+            if updated_at:
+                lead_date = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
+                if lead_date < cutoff_date:
+                    stale_leads_count += 1
     
-    # Count clients
-    clients_count = await db.clients.count_documents({"user_id": user["id"]})
+    if stale_leads_count > 0:
+        alerts.append({
+            "type": "warning",
+            "title": "Leads parados",
+            "message": f"{stale_leads_count} lead(s) sem contato há mais de {leads_alert_days} dias"
+        })
+    
+    # Count clients e clientes fechados no mês
+    clients = await db.clients.find({"user_id": user["id"]}, {"_id": 0}).to_list(1000)
+    clients_count = len(clients)
+    clients_closed_this_month = 0
+    
+    for client in clients:
+        created_at = client.get("created_at", "")
+        if created_at:
+            client_date = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+            if client_date.month == current_month and client_date.year == current_year:
+                clients_closed_this_month += 1
     
     # Tasks stats
-    today = datetime.now(timezone.utc).date()
-    tasks_today = await db.tasks.count_documents({
-        "user_id": user["id"],
-        "completed": False,
-        "due_date": {"$lte": datetime.combine(today, datetime.max.time()).isoformat()}
-    })
+    tasks = await db.tasks.find({"user_id": user["id"], "completed": False}, {"_id": 0}).to_list(1000)
+    tasks_today = 0
+    tasks_pending = len(tasks)
+    tasks_today_list = []
     
-    tasks_pending = await db.tasks.count_documents({
-        "user_id": user["id"],
-        "completed": False
-    })
+    for task in tasks:
+        due_date_str = task.get("due_date", "")
+        if due_date_str:
+            due_date = datetime.fromisoformat(due_date_str.replace("Z", "+00:00")).date()
+            if due_date <= today:
+                tasks_today += 1
+                if len(tasks_today_list) < 5:
+                    tasks_today_list.append({
+                        "id": task["id"],
+                        "title": task["title"],
+                        "type": task.get("task_type", "outro"),
+                        "due_date": due_date_str
+                    })
     
     # Financial stats
     payments = await db.payments.find({"user_id": user["id"]}, {"_id": 0}).to_list(1000)
     
-    current_month = datetime.now(timezone.utc).month
-    current_year = datetime.now(timezone.utc).year
-    
     monthly_revenue = 0
     pending_revenue = 0
+    overdue_clients = set()
     
     for payment in payments:
-        due_date = datetime.fromisoformat(payment["due_date"].replace("Z", "+00:00"))
-        if due_date.month == current_month and due_date.year == current_year:
-            if payment["paid"]:
-                monthly_revenue += payment["amount"]
-            else:
-                pending_revenue += payment["amount"]
+        due_date_str = payment.get("due_date", "")
+        if due_date_str:
+            due_date = datetime.fromisoformat(due_date_str.replace("Z", "+00:00"))
+            if due_date.month == current_month and due_date.year == current_year:
+                if payment.get("paid"):
+                    monthly_revenue += payment.get("amount", 0)
+                else:
+                    pending_revenue += payment.get("amount", 0)
+            # Verificar inadimplentes
+            if not payment.get("paid") and due_date.date() < today:
+                client_id = payment.get("client_id")
+                if client_id:
+                    overdue_clients.add(client_id)
+    
+    # Alerta de inadimplentes
+    if overdue_clients:
+        alerts.append({
+            "type": "error",
+            "title": "Clientes inadimplentes",
+            "message": f"{len(overdue_clients)} cliente(s) com pagamento em atraso"
+        })
+    
+    # Alerta de meta
+    goal_percentage = (monthly_revenue / monthly_goal * 100) if monthly_goal > 0 else 0
+    if monthly_goal > 0 and goal_percentage < 100:
+        alerts.append({
+            "type": "info",
+            "title": "Meta do mês",
+            "message": f"Faltam R$ {monthly_goal - monthly_revenue:,.2f} para atingir a meta"
+        })
+    
+    # Limitar a 3 alertas
+    alerts = alerts[:3]
     
     return {
         "leads_total": len(leads),
         "leads_by_stage": leads_by_stage,
         "total_pipeline_value": total_pipeline_value,
         "clients_count": clients_count,
+        "clients_closed_this_month": clients_closed_this_month,
         "tasks_today": tasks_today,
         "tasks_pending": tasks_pending,
+        "tasks_today_list": tasks_today_list,
         "monthly_revenue": monthly_revenue,
-        "pending_revenue": pending_revenue
+        "pending_revenue": pending_revenue,
+        "monthly_goal": monthly_goal,
+        "goal_percentage": min(goal_percentage, 100),
+        "alerts": alerts,
+        "settings": {
+            "monthly_goal": monthly_goal,
+            "leads_alert_days": leads_alert_days
+        }
     }
 
 # ============ ADMIN ROUTES ============
