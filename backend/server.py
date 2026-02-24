@@ -402,6 +402,25 @@ async def get_me(user: dict = Depends(get_current_user)):
         "original_user_id": user.get("_original_user_id")
     }
 
+# ============ USER SETTINGS ============
+
+@api_router.put("/user/settings")
+async def update_user_settings(data: UserSettingsUpdate, user: dict = Depends(get_current_user)):
+    """Atualizar configurações do usuário (meta mensal, dias de alerta)"""
+    update_data = {}
+    if data.monthly_goal is not None:
+        update_data["settings.monthly_goal"] = data.monthly_goal
+    if data.leads_alert_days is not None:
+        update_data["settings.leads_alert_days"] = data.leads_alert_days
+    
+    if update_data:
+        await db.users.update_one(
+            {"id": user["id"]},
+            {"$set": update_data}
+        )
+    
+    return {"message": "Configurações atualizadas com sucesso"}
+
 # ============ LEADS ROUTES ============
 
 @api_router.get("/leads", response_model=List[LeadResponse])
