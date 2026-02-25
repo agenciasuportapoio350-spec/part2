@@ -21,6 +21,7 @@ export default function CRMPage() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingLead, setEditingLead] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, type: null, id: null, stage: null });
   const [formData, setFormData] = useState({
     name: "",
     email: "",
