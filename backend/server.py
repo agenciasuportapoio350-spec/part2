@@ -463,6 +463,47 @@ async def update_lead(lead_id: str, data: LeadUpdate, user: dict = Depends(get_c
     if data.stage and data.stage not in PIPELINE_STAGES:
         raise HTTPException(status_code=400, detail="Estágio inválido")
     
+    # Se estágio mudou para "fechado", converter automaticamente para cliente
+    if data.stage == "fechado" and lead.get("stage") != "fechado":
+        # Verificar se já existe cliente para este lead (idempotência)
+        existing_client = await db.clients.find_one({
+            "user_id": user["id"],
+            "email": lead.get("email"),
+            "name": lead.get("name")
+        })
+        
+        if not existing_client:
+            # Criar cliente a partir do lead
+            client_id = str(uuid.uuid4())
+            now = datetime.now(timezone.utc).isoformat()
+            
+            # Default onboarding checklist
+            checklist = [
+                {"id": str(uuid.uuid4()), "title": "Revisão do perfil", "completed": False},
+                {"id": str(uuid.uuid4()), "title": "SEO descrição", "completed": False},
+                {"id": str(uuid.uuid4()), "title": "Inserção serviços", "completed": False},
+                {"id": str(uuid.uuid4()), "title": "Fotos", "completed": False},
+                {"id": str(uuid.uuid4()), "title": "Primeira postagem", "completed": False},
+                {"id": str(uuid.uuid4()), "title": "Pedido de avaliação", "completed": False},
+            ]
+            
+            client_doc = {
+                "id": client_id,
+                "name": lead["name"],
+                "email": lead.get("email"),
+                "phone": lead.get("phone"),
+                "company": lead.get("company"),
+                "contract_value": lead.get("contract_value", 0),
+                "notes": lead.get("notes"),
+                "checklist": checklist,
+                "user_id": user["id"],
+                "created_at": now,
+                "updated_at": now,
+                "lead_id": lead_id,  # Referência ao lead original
+            }
+            
+            await db.clients.insert_one(client_doc)
+    
     update_data = {k: v for k, v in data.model_dump().items() if v is not None}
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
     
