@@ -145,6 +145,16 @@ class ClientCreate(BaseModel):
     phone: Optional[str] = None
     company: Optional[str] = None
     contract_value: float = 0.0
+    plan: str = "unico"  # "unico" ou "recorrente"
+    notes: Optional[str] = None
+
+class ClientUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    company: Optional[str] = None
+    contract_value: Optional[float] = None
+    plan: Optional[str] = None
     notes: Optional[str] = None
 
 class ClientResponse(BaseModel):
@@ -154,6 +164,7 @@ class ClientResponse(BaseModel):
     phone: Optional[str]
     company: Optional[str]
     contract_value: float
+    plan: str = "unico"
     notes: Optional[str]
     checklist: List[ChecklistItem]
     user_id: str
