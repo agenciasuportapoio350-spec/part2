@@ -820,7 +820,7 @@ async def get_dashboard_stats(user: dict = Depends(get_current_user)):
                         "due_date": due_date_str
                     })
     
-    # Financial stats
+    # Financial stats - usando comparação de strings (date-only)
     payments = await db.payments.find({"user_id": user["id"]}, {"_id": 0}).to_list(1000)
     
     monthly_revenue = 0
@@ -830,14 +830,16 @@ async def get_dashboard_stats(user: dict = Depends(get_current_user)):
     for payment in payments:
         due_date_str = payment.get("due_date", "")
         if due_date_str:
-            due_date = datetime.fromisoformat(due_date_str.replace("Z", "+00:00"))
-            if due_date.month == current_month and due_date.year == current_year:
+            # Pega apenas a parte da data (YYYY-MM-DD)
+            due_date_part = due_date_str.split("T")[0] if "T" in due_date_str else due_date_str
+            # Verifica se está no mês atual
+            if due_date_part.startswith(current_year_month):
                 if payment.get("paid"):
                     monthly_revenue += payment.get("amount", 0)
                 else:
                     pending_revenue += payment.get("amount", 0)
-            # Verificar inadimplentes
-            if not payment.get("paid") and due_date.date() < today:
+            # Verificar inadimplentes (comparação de strings)
+            if not payment.get("paid") and due_date_part < today_str:
                 client_id = payment.get("client_id")
                 if client_id:
                     overdue_clients.add(client_id)
