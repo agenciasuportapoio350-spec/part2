@@ -742,10 +742,12 @@ async def delete_payment(payment_id: str, user: dict = Depends(get_current_user)
 
 @api_router.get("/dashboard/stats")
 async def get_dashboard_stats(user: dict = Depends(get_current_user)):
-    now = datetime.now(timezone.utc)
-    today = now.date()
+    now = datetime.now()
+    # Data de hoje como string "YYYY-MM-DD" (local, sem timezone)
+    today_str = now.strftime("%Y-%m-%d")
     current_month = now.month
     current_year = now.year
+    current_year_month = f"{current_year}-{current_month:02d}"
     
     # Configurações do usuário
     user_settings = user.get("settings", {})
@@ -770,9 +772,12 @@ async def get_dashboard_stats(user: dict = Depends(get_current_user)):
             # Verificar leads parados
             updated_at = lead.get("updated_at", lead.get("created_at", ""))
             if updated_at:
-                lead_date = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
-                if lead_date < cutoff_date:
-                    stale_leads_count += 1
+                try:
+                    lead_date = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
+                    if lead_date < cutoff_date:
+                        stale_leads_count += 1
+                except:
+                    pass
     
     if stale_leads_count > 0:
         alerts.append({
@@ -789,11 +794,11 @@ async def get_dashboard_stats(user: dict = Depends(get_current_user)):
     for client in clients:
         created_at = client.get("created_at", "")
         if created_at:
-            client_date = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
-            if client_date.month == current_month and client_date.year == current_year:
+            # Verifica se created_at começa com ano-mês atual
+            if created_at.startswith(current_year_month):
                 clients_closed_this_month += 1
     
-    # Tasks stats
+    # Tasks stats - usando comparação de strings (date-only, sem timezone)
     tasks = await db.tasks.find({"user_id": user["id"], "completed": False}, {"_id": 0}).to_list(1000)
     tasks_today = 0
     tasks_pending = len(tasks)
@@ -802,8 +807,10 @@ async def get_dashboard_stats(user: dict = Depends(get_current_user)):
     for task in tasks:
         due_date_str = task.get("due_date", "")
         if due_date_str:
-            due_date = datetime.fromisoformat(due_date_str.replace("Z", "+00:00")).date()
-            if due_date <= today:
+            # Pega apenas a parte da data (YYYY-MM-DD)
+            due_date_part = due_date_str.split("T")[0] if "T" in due_date_str else due_date_str
+            # Compara strings: tarefas de hoje ou atrasadas
+            if due_date_part <= today_str:
                 tasks_today += 1
                 if len(tasks_today_list) < 5:
                     tasks_today_list.append({
