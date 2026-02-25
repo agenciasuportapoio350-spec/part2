@@ -118,8 +118,8 @@ backend:
         -comment: "✅ PASS - Contract values are correctly saved and retrieved as float numbers (2500.75), not strings. Both creation and persistence work correctly."
 
   - task: "Bug 2 - Fechado → Cliente automatic conversion"
-    implemented: false
-    working: false
+    implemented: true
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 1
     priority: "high"
@@ -128,6 +128,9 @@ backend:
         -working: false
         -agent: "testing"
         -comment: "❌ FAIL - Automatic conversion from lead to client when stage changes to 'fechado' via PUT /api/leads/{id} is NOT implemented. Manual conversion via POST /api/leads/{id}/convert works perfectly, but the automatic trigger in update_lead function (lines 457-471) is missing. The update_lead function only updates the stage without checking if stage is 'fechado' to trigger client creation."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ PASS - Bug 2 has been FIXED! Automatic conversion from lead to client now works correctly when stage changes to 'fechado'. Tested the exact flow from review request: 1) Login successful 2) Created unique lead 3) Counted clients before (7) 4) Updated lead stage to 'fechado' 5) Verified client count increased (8) 6) Confirmed new client has matching data (name, email, contract_value). The automatic conversion logic is now properly implemented in update_lead function (lines 466-505) with proper validation and client creation."
 
   - task: "Bug 3 - Tarefas do dia dashboard stats"
     implemented: true
