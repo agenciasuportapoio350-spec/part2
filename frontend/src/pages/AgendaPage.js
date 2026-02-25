@@ -22,6 +22,7 @@ export default function AgendaPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("today");
   const [modalOpen, setModalOpen] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, type: null, taskId: null });
   const [formData, setFormData] = useState({
     title: "",
     description: "",
