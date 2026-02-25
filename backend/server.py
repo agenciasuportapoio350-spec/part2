@@ -557,6 +557,7 @@ async def convert_lead_to_client(lead_id: str, user: dict = Depends(get_current_
         "phone": lead.get("phone"),
         "company": lead.get("company"),
         "contract_value": lead.get("contract_value", 0),
+        "plan": "unico",  # Default plan quando converte de lead
         "notes": lead.get("notes"),
         "checklist": checklist,
         "user_id": user["id"],
