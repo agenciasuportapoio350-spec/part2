@@ -273,12 +273,13 @@ export default function CRMPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Valor do Contrato</Label>
+                <Label>Valor do Contrato (R$)</Label>
                 <Input
-                  type="number"
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0,00"
                   value={formData.contract_value}
-                  onChange={(e) => setFormData({ ...formData, contract_value: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => setFormData({ ...formData, contract_value: maskCurrency(e.target.value) })}
                   data-testid="lead-value-input"
                 />
               </div>
