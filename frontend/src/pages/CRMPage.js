@@ -73,9 +73,12 @@ export default function CRMPage() {
   };
 
   const handleDelete = async (leadId) => {
-    if (!window.confirm("Tem certeza que deseja excluir este lead?")) return;
+    setConfirmDialog({ open: true, type: "delete", id: leadId });
+  };
+
+  const confirmDelete = async () => {
     try {
-      await api.delete(`/leads/${leadId}`);
+      await api.delete(`/leads/${confirmDialog.id}`);
       toast.success("Lead excluído com sucesso!");
       fetchLeads();
     } catch (error) {
@@ -94,6 +97,16 @@ export default function CRMPage() {
   };
 
   const handleStageChange = async (leadId, newStage) => {
+    // Se moveu para "perdido", pedir confirmação
+    if (newStage === "perdido") {
+      setConfirmDialog({ open: true, type: "perdido", id: leadId, stage: newStage });
+      return;
+    }
+    
+    await executeStageChange(leadId, newStage);
+  };
+
+  const executeStageChange = async (leadId, newStage) => {
     try {
       // Se moveu para "fechado", converter automaticamente para cliente
       if (newStage === "fechado") {
@@ -109,6 +122,15 @@ export default function CRMPage() {
     } catch (error) {
       toast.error("Erro ao atualizar estágio");
     }
+  };
+
+  const handleConfirmAction = () => {
+    if (confirmDialog.type === "delete") {
+      confirmDelete();
+    } else if (confirmDialog.type === "perdido") {
+      executeStageChange(confirmDialog.id, confirmDialog.stage);
+    }
+    setConfirmDialog({ open: false, type: null, id: null, stage: null });
   };
 
   const openModal = (lead = null) => {
