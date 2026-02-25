@@ -356,6 +356,21 @@ export default function AgendaPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Confirmação */}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}
+        title="Tem certeza?"
+        description={
+          confirmDialog.type === "delete"
+            ? "Essa ação não poderá ser desfeita. A tarefa será excluída permanentemente."
+            : "A tarefa será marcada como concluída."
+        }
+        onConfirm={handleConfirmAction}
+        variant={confirmDialog.type === "delete" ? "destructive" : "default"}
+        confirmText={confirmDialog.type === "delete" ? "Excluir" : "Concluir"}
+      />
     </div>
   );
 }
