@@ -455,12 +455,13 @@ export default function FinancePage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Valor *</Label>
+                <Label>Valor (R$) *</Label>
                 <Input
-                  type="number"
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0,00"
                   value={formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => setFormData({ ...formData, amount: maskCurrency(e.target.value) })}
                   required
                   data-testid="payment-amount-input"
                 />
