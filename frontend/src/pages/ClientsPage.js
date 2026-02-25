@@ -20,12 +20,14 @@ export default function ClientsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, clientId: null });
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
     company: "",
     contract_value: "",
+    plan: "unico",
     notes: "",
   });
 
