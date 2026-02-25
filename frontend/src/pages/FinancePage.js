@@ -9,6 +9,7 @@ import { Badge } from "../components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
+import { ConfirmDialog } from "../components/ui/confirm-dialog";
 import { toast } from "sonner";
 import { Plus, DollarSign, TrendingUp, Clock, Check, X, Trash2, RefreshCw, AlertCircle, CalendarClock } from "lucide-react";
 
