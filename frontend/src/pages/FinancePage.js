@@ -53,7 +53,12 @@ export default function FinancePage() {
       return;
     }
     try {
-      await api.post("/payments", formData);
+      // Converte valor formatado para número antes de enviar
+      const dataToSend = {
+        ...formData,
+        amount: parseCurrencyInput(formData.amount),
+      };
+      await api.post("/payments", dataToSend);
       toast.success("Pagamento criado com sucesso!");
       fetchData();
       closeModal();
@@ -88,16 +93,15 @@ export default function FinancePage() {
     setFormData({
       client_id: "",
       description: "",
-      amount: 0,
+      amount: "",
       payment_type: "pontual",
-      due_date: new Date().toISOString().split("T")[0],
+      due_date: getTodayDateString(),
       paid: false,
     });
   };
 
-  // Filtrar pagamentos
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // Filtrar pagamentos usando strings (date-only, sem timezone)
+  const todayStr = getTodayDateString();
 
   const filteredPayments = payments.filter((p) => {
     if (filterStatus === "paid") return p.paid;
