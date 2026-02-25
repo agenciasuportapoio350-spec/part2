@@ -1,13 +1,19 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../lib/api";
-import { formatCurrency, formatDate, TASK_TYPES } from "../lib/utils";
+import { formatCurrency, formatDate, TASK_TYPES, maskCurrency, parseCurrencyInput, formatCurrencyInput, getTodayDateString } from "../lib/utils";
 import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Textarea } from "../components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Checkbox } from "../components/ui/checkbox";
 import { Badge } from "../components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { ConfirmDialog } from "../components/ui/confirm-dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Building, Phone, Mail, DollarSign, Calendar, CheckCircle2, Circle, Loader2 } from "lucide-react";
+import { ArrowLeft, Building, Phone, Mail, DollarSign, Calendar, CheckCircle2, Circle, Loader2, Pencil, Plus, RefreshCw, User } from "lucide-react";
 
 export default function ClientDetailPage() {
   const { id } = useParams();
@@ -15,6 +21,25 @@ export default function ClientDetailPage() {
   const [client, setClient] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [taskModalOpen, setTaskModalOpen] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, type: null, taskId: null, itemId: null });
+  
+  const [editFormData, setEditFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    company: "",
+    contract_value: "",
+    plan: "unico",
+  });
+  
+  const [taskFormData, setTaskFormData] = useState({
+    title: "",
+    description: "",
+    task_type: "outro",
+    due_date: getTodayDateString(),
+  });
 
   useEffect(() => {
     fetchClient();
@@ -43,7 +68,64 @@ export default function ClientDetailPage() {
     }
   };
 
+  const openEditModal = () => {
+    setEditFormData({
+      name: client.name || "",
+      email: client.email || "",
+      phone: client.phone || "",
+      company: client.company || "",
+      contract_value: formatCurrencyInput(client.contract_value),
+      plan: client.plan || "unico",
+    });
+    setEditModalOpen(true);
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const dataToSend = {
+        ...editFormData,
+        contract_value: parseCurrencyInput(editFormData.contract_value),
+      };
+      await api.put(`/clients/${id}`, dataToSend);
+      toast.success("Cliente atualizado com sucesso!");
+      fetchClient();
+      setEditModalOpen(false);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erro ao atualizar cliente");
+    }
+  };
+
+  const handleTaskSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const payload = {
+        ...taskFormData,
+        client_id: id,
+      };
+      await api.post("/tasks", payload);
+      toast.success("Tarefa criada com sucesso!");
+      fetchTasks();
+      setTaskModalOpen(false);
+      setTaskFormData({
+        title: "",
+        description: "",
+        task_type: "outro",
+        due_date: getTodayDateString(),
+      });
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erro ao criar tarefa");
+    }
+  };
+
   const toggleChecklistItem = async (itemId) => {
+    const item = client.checklist?.find(i => i.id === itemId);
+    // Se vai marcar como concluído, pedir confirmação
+    if (item && !item.completed) {
+      setConfirmDialog({ open: true, type: "checklist", itemId });
+      return;
+    }
+    // Se vai desmarcar, fazer direto
     try {
       await api.put(`/clients/${id}/checklist/${itemId}`);
       fetchClient();
@@ -54,13 +136,36 @@ export default function ClientDetailPage() {
   };
 
   const toggleTaskComplete = async (taskId, currentStatus) => {
+    // Se vai concluir, pedir confirmação
+    if (!currentStatus) {
+      setConfirmDialog({ open: true, type: "task", taskId });
+      return;
+    }
+    // Se vai reabrir, fazer direto
     try {
-      await api.put(`/tasks/${taskId}`, { completed: !currentStatus });
+      await api.put(`/tasks/${taskId}`, { completed: false });
       fetchTasks();
-      toast.success(currentStatus ? "Tarefa reaberta" : "Tarefa concluída!");
+      toast.success("Tarefa reaberta!");
     } catch (error) {
       toast.error("Erro ao atualizar tarefa");
     }
+  };
+
+  const handleConfirmAction = async () => {
+    try {
+      if (confirmDialog.type === "checklist") {
+        await api.put(`/clients/${id}/checklist/${confirmDialog.itemId}`);
+        fetchClient();
+        toast.success("Item concluído!");
+      } else if (confirmDialog.type === "task") {
+        await api.put(`/tasks/${confirmDialog.taskId}`, { completed: true });
+        fetchTasks();
+        toast.success("Tarefa concluída!");
+      }
+    } catch (error) {
+      toast.error("Erro ao executar ação");
+    }
+    setConfirmDialog({ open: false, type: null, taskId: null, itemId: null });
   };
 
   if (loading) {
@@ -76,27 +181,50 @@ export default function ClientDetailPage() {
   const checklistCompleted = client.checklist?.filter((i) => i.completed).length || 0;
   const checklistTotal = client.checklist?.length || 0;
   const checklistProgress = checklistTotal ? (checklistCompleted / checklistTotal) * 100 : 0;
+  const isRecorrente = client.plan === "recorrente";
 
   return (
     <div className="p-6 md:p-8" data-testid="client-detail-page">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={() => navigate("/clients")}
-          data-testid="back-btn"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{client.name}</h1>
-          {client.company && (
-            <p className="text-slate-500 flex items-center gap-2 mt-1">
-              <Building className="w-4 h-4" />
-              {client.company}
-            </p>
-          )}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => navigate("/clients")}
+            data-testid="back-btn"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{client.name}</h1>
+              <Badge className={isRecorrente ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"}>
+                {isRecorrente ? (
+                  <><RefreshCw className="w-3 h-3 mr-1" /> Recorrente</>
+                ) : (
+                  <><User className="w-3 h-3 mr-1" /> Único</>
+                )}
+              </Badge>
+            </div>
+            {client.company && (
+              <p className="text-slate-500 flex items-center gap-2 mt-1">
+                <Building className="w-4 h-4" />
+                {client.company}
+              </p>
+            )}
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={openEditModal} className="gap-2">
+            <Pencil className="w-4 h-4" />
+            Editar
+          </Button>
+          <Button onClick={() => setTaskModalOpen(true)} className="gap-2">
+            <Plus className="w-4 h-4" />
+            Nova Tarefa
+          </Button>
         </div>
       </div>
 
@@ -149,7 +277,7 @@ export default function ClientDetailPage() {
             </div>
             <div className="h-2 bg-slate-100 rounded-full overflow-hidden mt-2">
               <div
-                className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                className={`h-full rounded-full transition-all duration-300 ${isRecorrente ? "bg-emerald-500" : "bg-blue-500"}`}
                 style={{ width: `${checklistProgress}%` }}
               />
             </div>
@@ -161,7 +289,7 @@ export default function ClientDetailPage() {
                   key={item.id}
                   className={`flex items-center gap-3 p-3 rounded-lg border transition-all duration-200 cursor-pointer ${
                     item.completed
-                      ? "bg-emerald-50 border-emerald-200"
+                      ? isRecorrente ? "bg-emerald-50 border-emerald-200" : "bg-blue-50 border-blue-200"
                       : "bg-white border-slate-200 hover:border-slate-300"
                   }`}
                   onClick={() => toggleChecklistItem(item.id)}
@@ -170,13 +298,13 @@ export default function ClientDetailPage() {
                   <Checkbox
                     checked={item.completed}
                     onCheckedChange={() => toggleChecklistItem(item.id)}
-                    className="data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
+                    className={`data-[state=checked]:border-${isRecorrente ? "emerald" : "blue"}-500 data-[state=checked]:bg-${isRecorrente ? "emerald" : "blue"}-500`}
                   />
-                  <span className={`flex-1 ${item.completed ? "text-emerald-700 line-through" : "text-slate-700"}`}>
+                  <span className={`flex-1 ${item.completed ? `${isRecorrente ? "text-emerald-700" : "text-blue-700"} line-through` : "text-slate-700"}`}>
                     {item.title}
                   </span>
                   {item.completed ? (
-                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                    <CheckCircle2 className={`w-5 h-5 ${isRecorrente ? "text-emerald-500" : "text-blue-500"}`} />
                   ) : (
                     <Circle className="w-5 h-5 text-slate-300" />
                   )}
@@ -189,12 +317,22 @@ export default function ClientDetailPage() {
         {/* Tasks */}
         <Card className="lg:col-span-3" data-testid="tasks-card">
           <CardHeader>
-            <CardTitle className="text-lg">Tarefas do Cliente</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">Tarefas do Cliente</CardTitle>
+              <Button size="sm" variant="outline" onClick={() => setTaskModalOpen(true)} className="gap-2">
+                <Plus className="w-4 h-4" />
+                Nova Tarefa
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {tasks.length === 0 ? (
               <div className="text-center py-8 text-slate-400">
-                Nenhuma tarefa encontrada para este cliente
+                <Calendar className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p>Nenhuma tarefa encontrada para este cliente</p>
+                <Button size="sm" variant="link" onClick={() => setTaskModalOpen(true)} className="mt-2">
+                  Criar primeira tarefa
+                </Button>
               </div>
             ) : (
               <div className="space-y-3">
@@ -234,6 +372,163 @@ export default function ClientDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Modal Editar Cliente */}
+      <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Editar Cliente</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2 space-y-2">
+                <Label>Nome *</Label>
+                <Input
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={editFormData.email}
+                  onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Telefone</Label>
+                <Input
+                  value={editFormData.phone}
+                  onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Empresa</Label>
+                <Input
+                  value={editFormData.company}
+                  onChange={(e) => setEditFormData({ ...editFormData, company: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Valor do Contrato (R$)</Label>
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0,00"
+                  value={editFormData.contract_value}
+                  onChange={(e) => setEditFormData({ ...editFormData, contract_value: maskCurrency(e.target.value) })}
+                />
+              </div>
+              <div className="col-span-2 space-y-2">
+                <Label>Plano</Label>
+                <Select
+                  value={editFormData.plan}
+                  onValueChange={(value) => setEditFormData({ ...editFormData, plan: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unico">Único</SelectItem>
+                    <SelectItem value="recorrente">Recorrente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditModalOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit">
+                Salvar Alterações
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Nova Tarefa */}
+      <Dialog open={taskModalOpen} onOpenChange={setTaskModalOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Nova Tarefa para {client.name}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleTaskSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Título *</Label>
+              <Input
+                value={taskFormData.title}
+                onChange={(e) => setTaskFormData({ ...taskFormData, title: e.target.value })}
+                placeholder="Ex: Revisar perfil do Google"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Descrição</Label>
+              <Textarea
+                value={taskFormData.description}
+                onChange={(e) => setTaskFormData({ ...taskFormData, description: e.target.value })}
+                placeholder="Detalhes da tarefa..."
+                rows={3}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Tipo</Label>
+                <Select
+                  value={taskFormData.task_type}
+                  onValueChange={(value) => setTaskFormData({ ...taskFormData, task_type: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(TASK_TYPES).map(([key, value]) => (
+                      <SelectItem key={key} value={key}>
+                        {value.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Data *</Label>
+                <Input
+                  type="date"
+                  value={taskFormData.due_date}
+                  onChange={(e) => setTaskFormData({ ...taskFormData, due_date: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setTaskModalOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit">
+                Criar Tarefa
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Confirmação */}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}
+        title="Tem certeza?"
+        description={
+          confirmDialog.type === "checklist"
+            ? "O item do checklist será marcado como concluído."
+            : "A tarefa será marcada como concluída."
+        }
+        onConfirm={handleConfirmAction}
+        variant="default"
+        confirmText="Concluir"
+      />
     </div>
   );
 }
