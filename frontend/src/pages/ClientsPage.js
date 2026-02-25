@@ -143,7 +143,7 @@ export default function ClientsPage() {
         />
       </div>
 
-      {/* Clients Grid */}
+      {/* Clientes em 2 Colunas por Plano */}
       {filteredClients.length === 0 ? (
         <div className="empty-state">
           <Building className="empty-state-icon" />
@@ -155,86 +155,67 @@ export default function ClientsPage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredClients.map((client) => (
-            <Card
-              key={client.id}
-              className="card-hover cursor-pointer group"
-              onClick={() => navigate(`/clients/${client.id}`)}
-              data-testid={`client-card-${client.id}`}
-            >
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h3 className="font-semibold text-slate-900 text-lg">{client.name}</h3>
-                    {client.company && (
-                      <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
-                        <Building className="w-4 h-4" />
-                        <span>{client.company}</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-600 hover:bg-red-50"
-                      onClick={(e) => handleDelete(client.id, e)}
-                      data-testid={`delete-client-${client.id}`}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                    <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-slate-600 transition-colors" />
-                  </div>
-                </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Coluna Plano Recorrente (Destaque) */}
+          <div>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center gap-2">
+                <RefreshCw className="w-5 h-5 text-emerald-600" />
+                <h2 className="text-xl font-bold text-slate-900">Plano Recorrente</h2>
+              </div>
+              <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
+                {clientesRecorrentes.length} {clientesRecorrentes.length === 1 ? "cliente" : "clientes"}
+              </Badge>
+            </div>
+            {clientesRecorrentes.length === 0 ? (
+              <div className="text-center py-8 text-slate-400 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
+                <RefreshCw className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p>Nenhum cliente recorrente</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {clientesRecorrentes.map((client) => (
+                  <ClientCard
+                    key={client.id}
+                    client={client}
+                    onNavigate={() => navigate(`/clients/${client.id}`)}
+                    onDelete={(e) => handleDelete(client.id, e)}
+                    highlight
+                  />
+                ))}
+              </div>
+            )}
+          </div>
 
-                <div className="space-y-2 text-sm text-slate-500">
-                  {client.phone && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-4 h-4" />
-                      <span>{client.phone}</span>
-                    </div>
-                  )}
-                  {client.email && (
-                    <div className="flex items-center gap-2">
-                      <Mail className="w-4 h-4" />
-                      <span className="truncate">{client.email}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
-                  <div className="flex items-center gap-1.5 text-emerald-600">
-                    <DollarSign className="w-4 h-4" />
-                    <span className="font-mono font-semibold">
-                      {formatCurrency(client.contract_value)}
-                    </span>
-                  </div>
-                  <div className="text-xs text-slate-400">
-                    Desde {formatDate(client.created_at)}
-                  </div>
-                </div>
-
-                {/* Checklist Progress */}
-                <div className="mt-4">
-                  <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-                    <span>Checklist</span>
-                    <span>
-                      {client.checklist?.filter((i) => i.completed).length || 0}/{client.checklist?.length || 0}
-                    </span>
-                  </div>
-                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-emerald-500 rounded-full transition-all duration-300"
-                      style={{
-                        width: `${client.checklist?.length ? (client.checklist.filter((i) => i.completed).length / client.checklist.length) * 100 : 0}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          {/* Coluna Plano Único */}
+          <div>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center gap-2">
+                <User className="w-5 h-5 text-blue-600" />
+                <h2 className="text-xl font-bold text-slate-900">Plano Único</h2>
+              </div>
+              <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">
+                {clientesUnicos.length} {clientesUnicos.length === 1 ? "cliente" : "clientes"}
+              </Badge>
+            </div>
+            {clientesUnicos.length === 0 ? (
+              <div className="text-center py-8 text-slate-400 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
+                <User className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p>Nenhum cliente único</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {clientesUnicos.map((client) => (
+                  <ClientCard
+                    key={client.id}
+                    client={client}
+                    onNavigate={() => navigate(`/clients/${client.id}`)}
+                    onDelete={(e) => handleDelete(client.id, e)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
