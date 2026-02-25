@@ -512,6 +512,16 @@ export default function FinancePage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Confirmação */}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}
+        title="Tem certeza?"
+        description="Essa ação não poderá ser desfeita. O pagamento será excluído permanentemente."
+        onConfirm={confirmDelete}
+        variant="destructive"
+      />
     </div>
   );
 }
