@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import api from "../lib/api";
-import { formatCurrency, formatDate, PAYMENT_TYPES } from "../lib/utils";
+import { formatCurrency, formatDate, PAYMENT_TYPES, maskCurrency, parseCurrencyInput, formatCurrencyInput, getTodayDateString, isPast } from "../lib/utils";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -21,9 +21,9 @@ export default function FinancePage() {
   const [formData, setFormData] = useState({
     client_id: "",
     description: "",
-    amount: 0,
+    amount: "",
     payment_type: "pontual",
-    due_date: new Date().toISOString().split("T")[0],
+    due_date: getTodayDateString(),
     paid: false,
   });
 
