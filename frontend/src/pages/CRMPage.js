@@ -26,7 +26,7 @@ export default function CRMPage() {
     phone: "",
     company: "",
     stage: "novo_lead",
-    contract_value: 0,
+    contract_value: "",
     next_contact: "",
     reminder: "",
     notes: "",
