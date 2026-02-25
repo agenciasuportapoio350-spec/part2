@@ -95,27 +95,30 @@ export default function AgendaPage() {
       title: "",
       description: "",
       task_type: "outro",
-      due_date: new Date().toISOString().split("T")[0],
+      due_date: getTodayDateString(),
       client_id: "none",
       lead_id: "none",
     });
   };
 
   const filterTasks = (filter) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const weekEnd = new Date(today);
-    weekEnd.setDate(today.getDate() + 7);
+    // Usando strings para comparação de datas (date-only, sem timezone)
+    const todayStr = getTodayDateString();
+    
+    // Calcula data de 7 dias à frente
+    const weekEndDate = new Date();
+    weekEndDate.setDate(weekEndDate.getDate() + 7);
+    const weekEndStr = `${weekEndDate.getFullYear()}-${String(weekEndDate.getMonth() + 1).padStart(2, "0")}-${String(weekEndDate.getDate()).padStart(2, "0")}`;
 
     return tasks.filter((task) => {
-      const dueDate = new Date(task.due_date);
-      dueDate.setHours(0, 0, 0, 0);
+      const dueDateStr = task.due_date ? task.due_date.split("T")[0] : "";
 
       switch (filter) {
         case "today":
-          return !task.completed && dueDate <= today;
+          // Tarefas de hoje ou atrasadas (não concluídas)
+          return !task.completed && dueDateStr <= todayStr;
         case "week":
-          return !task.completed && dueDate <= weekEnd;
+          return !task.completed && dueDateStr <= weekEndStr;
         case "followups":
           return !task.completed && task.task_type === "follow_up";
         case "all":
