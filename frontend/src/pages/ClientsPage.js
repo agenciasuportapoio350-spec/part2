@@ -99,6 +99,10 @@ export default function ClientsPage() {
       client.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Separar clientes por plano
+  const clientesRecorrentes = filteredClients.filter(c => c.plan === "recorrente");
+  const clientesUnicos = filteredClients.filter(c => c.plan !== "recorrente");
+
   if (loading) {
     return (
       <div className="p-8">
