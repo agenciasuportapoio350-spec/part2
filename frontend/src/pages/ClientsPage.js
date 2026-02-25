@@ -272,6 +272,21 @@ export default function ClientsPage() {
                   data-testid="client-value-input"
                 />
               </div>
+              <div className="space-y-2">
+                <Label>Plano</Label>
+                <Select
+                  value={formData.plan}
+                  onValueChange={(value) => setFormData({ ...formData, plan: value })}
+                >
+                  <SelectTrigger data-testid="client-plan-select">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unico">Único</SelectItem>
+                    <SelectItem value="recorrente">Recorrente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="col-span-2 space-y-2">
                 <Label>Notas</Label>
                 <Textarea
@@ -293,6 +308,97 @@ export default function ClientsPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Confirmação */}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}
+        title="Tem certeza?"
+        description="Essa ação não poderá ser desfeita. O cliente e todos os dados relacionados serão excluídos permanentemente."
+        onConfirm={confirmDelete}
+        variant="destructive"
+      />
     </div>
+  );
+}
+
+// Componente de Card de Cliente
+function ClientCard({ client, onNavigate, onDelete, highlight = false }) {
+  return (
+    <Card
+      className={`card-hover cursor-pointer group ${highlight ? "border-emerald-200 bg-emerald-50/30" : ""}`}
+      onClick={onNavigate}
+      data-testid={`client-card-${client.id}`}
+    >
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-slate-900 text-lg truncate">{client.name}</h3>
+              {client.plan === "recorrente" && (
+                <Badge className="bg-emerald-100 text-emerald-700 text-xs">Recorrente</Badge>
+              )}
+            </div>
+            {client.company && (
+              <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
+                <Building className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">{client.company}</span>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-600 hover:bg-red-50"
+              onClick={onDelete}
+              data-testid={`delete-client-${client.id}`}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+            <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-slate-600 transition-colors" />
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-4 text-sm text-slate-500">
+          {client.phone && (
+            <div className="flex items-center gap-1.5">
+              <Phone className="w-4 h-4" />
+              <span>{client.phone}</span>
+            </div>
+          )}
+          {client.email && (
+            <div className="flex items-center gap-1.5">
+              <Mail className="w-4 h-4" />
+              <span className="truncate max-w-[200px]">{client.email}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100">
+          <div className={`flex items-center gap-1.5 ${highlight ? "text-emerald-600" : "text-blue-600"}`}>
+            <DollarSign className="w-4 h-4" />
+            <span className="font-mono font-semibold">
+              {formatCurrency(client.contract_value)}
+            </span>
+          </div>
+          
+          {/* Checklist Progress */}
+          <div className="flex items-center gap-2">
+            <div className="text-xs text-slate-400">
+              {client.checklist?.filter((i) => i.completed).length || 0}/{client.checklist?.length || 0}
+            </div>
+            <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-300 ${highlight ? "bg-emerald-500" : "bg-blue-500"}`}
+                style={{
+                  width: `${client.checklist?.length ? (client.checklist.filter((i) => i.completed).length / client.checklist.length) * 100 : 0}%`,
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
