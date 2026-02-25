@@ -632,6 +632,7 @@ async def create_client(data: ClientCreate, user: dict = Depends(get_current_use
         "phone": data.phone,
         "company": data.company,
         "contract_value": data.contract_value,
+        "plan": data.plan,
         "notes": data.notes,
         "checklist": checklist,
         "user_id": user["id"],
@@ -640,6 +641,19 @@ async def create_client(data: ClientCreate, user: dict = Depends(get_current_use
     }
     await db.clients.insert_one(client_doc)
     return client_doc
+
+@api_router.put("/clients/{client_id}", response_model=ClientResponse)
+async def update_client(client_id: str, data: ClientUpdate, user: dict = Depends(get_current_user)):
+    client = await db.clients.find_one({"id": client_id, "user_id": user["id"]}, {"_id": 0})
+    if not client:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.clients.update_one({"id": client_id}, {"$set": update_data})
+    updated = await db.clients.find_one({"id": client_id}, {"_id": 0})
+    return updated
 
 @api_router.put("/clients/{client_id}/checklist/{item_id}")
 async def toggle_checklist_item(client_id: str, item_id: str, user: dict = Depends(get_current_user)):
