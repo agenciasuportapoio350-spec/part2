@@ -107,19 +107,20 @@ export default function FinancePage() {
     if (filterStatus === "paid") return p.paid;
     if (filterStatus === "pending") return !p.paid;
     if (filterStatus === "overdue") {
-      const dueDate = new Date(p.due_date);
-      return !p.paid && dueDate < today;
+      const dueDateStr = p.due_date ? p.due_date.split("T")[0] : "";
+      return !p.paid && dueDateStr < todayStr;
     }
     return true;
   });
 
-  // Calcular estatísticas
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
+  // Calcular estatísticas usando strings (date-only)
+  const currentMonth = String(new Date().getMonth() + 1).padStart(2, "0");
+  const currentYear = String(new Date().getFullYear());
+  const currentYearMonth = `${currentYear}-${currentMonth}`;
 
   const monthlyPayments = payments.filter((p) => {
-    const dueDate = new Date(p.due_date);
-    return dueDate.getMonth() === currentMonth && dueDate.getFullYear() === currentYear;
+    const dueDateStr = p.due_date ? p.due_date.split("T")[0] : "";
+    return dueDateStr.startsWith(currentYearMonth);
   });
 
   const totalReceived = monthlyPayments.filter((p) => p.paid).reduce((sum, p) => sum + p.amount, 0);
@@ -130,27 +131,28 @@ export default function FinancePage() {
     .filter((p) => p.payment_type === "recorrente" && !p.paid)
     .reduce((sum, p) => sum + p.amount, 0);
 
-  // Pagamentos em atraso
+  // Pagamentos em atraso (comparação de strings)
   const overduePayments = payments.filter((p) => {
-    const dueDate = new Date(p.due_date);
-    return !p.paid && dueDate < today;
+    const dueDateStr = p.due_date ? p.due_date.split("T")[0] : "";
+    return !p.paid && dueDateStr < todayStr;
   });
 
-  // Próximos vencimentos (7 dias)
+  // Próximos vencimentos (7 dias) - usando strings
   const sevenDaysFromNow = new Date();
   sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+  const sevenDaysStr = `${sevenDaysFromNow.getFullYear()}-${String(sevenDaysFromNow.getMonth() + 1).padStart(2, "0")}-${String(sevenDaysFromNow.getDate()).padStart(2, "0")}`;
   
   const upcomingPayments = payments
     .filter((p) => {
-      const dueDate = new Date(p.due_date);
-      return !p.paid && dueDate >= today && dueDate <= sevenDaysFromNow;
+      const dueDateStr = p.due_date ? p.due_date.split("T")[0] : "";
+      return !p.paid && dueDateStr >= todayStr && dueDateStr <= sevenDaysStr;
     })
-    .sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
+    .sort((a, b) => a.due_date.localeCompare(b.due_date));
 
-  // Função para verificar se está em atraso
+  // Função para verificar se está em atraso (usando strings)
   const isOverdue = (payment) => {
-    const dueDate = new Date(payment.due_date);
-    return !payment.paid && dueDate < today;
+    const dueDateStr = payment.due_date ? payment.due_date.split("T")[0] : "";
+    return !payment.paid && dueDateStr < todayStr;
   };
 
   if (loading) {
