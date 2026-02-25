@@ -101,3 +101,72 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "Testar os bugs corrigidos no RankFlow - 4 bugs específicos relacionados a moeda BRL, conversão de leads, tarefas do dia e datas de pagamento"
+
+backend:
+  - task: "Bug 1 - Moeda BRL contract_value"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "testing"
+        -comment: "✅ PASS - Contract values are correctly saved and retrieved as float numbers (2500.75), not strings. Both creation and persistence work correctly."
+
+  - task: "Bug 2 - Fechado → Cliente automatic conversion"
+    implemented: false
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: false
+        -agent: "testing"
+        -comment: "❌ FAIL - Automatic conversion from lead to client when stage changes to 'fechado' via PUT /api/leads/{id} is NOT implemented. Manual conversion via POST /api/leads/{id}/convert works perfectly, but the automatic trigger in update_lead function (lines 457-471) is missing. The update_lead function only updates the stage without checking if stage is 'fechado' to trigger client creation."
+
+  - task: "Bug 3 - Tarefas do dia dashboard stats"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "testing"
+        -comment: "✅ PASS - Tasks with due_date = today (YYYY-MM-DD format) correctly appear in /api/dashboard/stats tasks_today count and tasks_today_list. String comparison logic works correctly for today's date."
+
+  - task: "Bug 4 - Payment dates format"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "testing"
+        -comment: "✅ PASS - Payment dates are correctly saved and returned in exact YYYY-MM-DD format. Test with '2026-02-25' returns exactly '2026-02-25' both on creation and retrieval."
+
+metadata:
+  created_by: "testing_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Bug 2 - Fechado → Cliente automatic conversion"
+  stuck_tasks:
+    - "Bug 2 - Fechado → Cliente automatic conversion"
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    -agent: "testing"
+    -message: "Completed comprehensive testing of all 4 RankFlow bugs. 3 out of 4 bugs are working correctly. Bug 2 requires implementation of automatic lead-to-client conversion logic in the update_lead function when stage changes to 'fechado'. The manual conversion endpoint exists and works perfectly, but the automatic trigger is missing."
