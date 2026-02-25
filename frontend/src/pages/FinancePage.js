@@ -79,15 +79,19 @@ export default function FinancePage() {
     }
   };
 
-  const handleDelete = async (paymentId) => {
-    if (!window.confirm("Tem certeza que deseja excluir este pagamento?")) return;
+  const handleDelete = (paymentId) => {
+    setConfirmDialog({ open: true, paymentId });
+  };
+
+  const confirmDelete = async () => {
     try {
-      await api.delete(`/payments/${paymentId}`);
+      await api.delete(`/payments/${confirmDialog.paymentId}`);
       toast.success("Pagamento excluído!");
       fetchData();
     } catch (error) {
       toast.error("Erro ao excluir pagamento");
     }
+    setConfirmDialog({ open: false, paymentId: null });
   };
 
   const closeModal = () => {
