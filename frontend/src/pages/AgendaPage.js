@@ -71,24 +71,39 @@ export default function AgendaPage() {
   };
 
   const handleToggleComplete = async (taskId, currentStatus) => {
+    // Se vai concluir a tarefa, pedir confirmação
+    if (!currentStatus) {
+      setConfirmDialog({ open: true, type: "complete", taskId });
+      return;
+    }
+    // Se vai reabrir, fazer direto
     try {
-      await api.put(`/tasks/${taskId}`, { completed: !currentStatus });
+      await api.put(`/tasks/${taskId}`, { completed: false });
       fetchData();
-      toast.success(currentStatus ? "Tarefa reaberta" : "Tarefa concluída!");
+      toast.success("Tarefa reaberta!");
     } catch (error) {
       toast.error("Erro ao atualizar tarefa");
     }
   };
 
-  const handleDelete = async (taskId) => {
-    if (!window.confirm("Tem certeza que deseja excluir esta tarefa?")) return;
+  const handleDelete = (taskId) => {
+    setConfirmDialog({ open: true, type: "delete", taskId });
+  };
+
+  const handleConfirmAction = async () => {
     try {
-      await api.delete(`/tasks/${taskId}`);
-      toast.success("Tarefa excluída!");
+      if (confirmDialog.type === "delete") {
+        await api.delete(`/tasks/${confirmDialog.taskId}`);
+        toast.success("Tarefa excluída!");
+      } else if (confirmDialog.type === "complete") {
+        await api.put(`/tasks/${confirmDialog.taskId}`, { completed: true });
+        toast.success("Tarefa concluída!");
+      }
       fetchData();
     } catch (error) {
-      toast.error("Erro ao excluir tarefa");
+      toast.error("Erro ao executar ação");
     }
+    setConfirmDialog({ open: false, type: null, taskId: null });
   };
 
   const closeModal = () => {
