@@ -163,10 +163,8 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus:
-    - "Bug 2 - Fechado → Cliente automatic conversion"
-  stuck_tasks:
-    - "Bug 2 - Fechado → Cliente automatic conversion"
+  current_focus: []
+  stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
