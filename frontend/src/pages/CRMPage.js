@@ -50,11 +50,17 @@ export default function CRMPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Converte valor formatado para número antes de enviar
+      const dataToSend = {
+        ...formData,
+        contract_value: parseCurrencyInput(formData.contract_value),
+      };
+      
       if (editingLead) {
-        await api.put(`/leads/${editingLead.id}`, formData);
+        await api.put(`/leads/${editingLead.id}`, dataToSend);
         toast.success("Lead atualizado com sucesso!");
       } else {
-        await api.post("/leads", formData);
+        await api.post("/leads", dataToSend);
         toast.success("Lead criado com sucesso!");
       }
       fetchLeads();
