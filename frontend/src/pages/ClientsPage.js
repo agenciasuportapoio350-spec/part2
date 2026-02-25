@@ -63,16 +63,20 @@ export default function ClientsPage() {
     }
   };
 
-  const handleDelete = async (clientId, e) => {
+  const handleDelete = (clientId, e) => {
     e.stopPropagation();
-    if (!window.confirm("Tem certeza que deseja excluir este cliente? Isso também excluirá as tarefas e pagamentos relacionados.")) return;
+    setConfirmDialog({ open: true, clientId });
+  };
+
+  const confirmDelete = async () => {
     try {
-      await api.delete(`/clients/${clientId}`);
+      await api.delete(`/clients/${confirmDialog.clientId}`);
       toast.success("Cliente excluído com sucesso!");
       fetchClients();
     } catch (error) {
       toast.error("Erro ao excluir cliente");
     }
+    setConfirmDialog({ open: false, clientId: null });
   };
 
   const closeModal = () => {
@@ -83,6 +87,7 @@ export default function ClientsPage() {
       phone: "",
       company: "",
       contract_value: "",
+      plan: "unico",
       notes: "",
     });
   };
