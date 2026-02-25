@@ -87,6 +87,14 @@ export default function CRMPage() {
 
   const handleStageChange = async (leadId, newStage) => {
     try {
+      // Se moveu para "fechado", converter automaticamente para cliente
+      if (newStage === "fechado") {
+        await api.post(`/leads/${leadId}/convert`);
+        toast.success("Lead convertido em cliente automaticamente!");
+        fetchLeads();
+        return;
+      }
+      
       await api.put(`/leads/${leadId}`, { stage: newStage });
       fetchLeads();
       toast.success("Estágio atualizado!");
