@@ -346,6 +346,20 @@ export default function CRMPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Confirmação */}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}
+        title="Tem certeza?"
+        description={
+          confirmDialog.type === "delete"
+            ? "Essa ação não poderá ser desfeita. O lead será excluído permanentemente."
+            : "Essa ação marcará o lead como perdido."
+        }
+        onConfirm={handleConfirmAction}
+        variant={confirmDialog.type === "delete" ? "destructive" : "warning"}
+      />
     </div>
   );
 }
