@@ -776,7 +776,7 @@ async def get_dashboard_stats(user: dict = Depends(get_current_user)):
                     lead_date = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
                     if lead_date < cutoff_date:
                         stale_leads_count += 1
-                except:
+                except Exception:
                     pass
     
     if stale_leads_count > 0:
