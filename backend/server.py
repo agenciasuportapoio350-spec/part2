@@ -505,6 +505,7 @@ async def update_lead(lead_id: str, data: LeadUpdate, user: dict = Depends(get_c
                 "phone": lead.get("phone"),
                 "company": lead.get("company"),
                 "contract_value": lead.get("contract_value", 0),
+                "plan": "unico",  # Default plan quando converte de lead
                 "notes": lead.get("notes"),
                 "checklist": checklist,
                 "user_id": user["id"],
