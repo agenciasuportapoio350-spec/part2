@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import api from "../lib/api";
-import { formatDate, TASK_TYPES, isPast, isToday } from "../lib/utils";
+import { formatDate, TASK_TYPES, isPast, isToday, getTodayDateString } from "../lib/utils";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -25,7 +25,7 @@ export default function AgendaPage() {
     title: "",
     description: "",
     task_type: "outro",
-    due_date: new Date().toISOString().split("T")[0],
+    due_date: getTodayDateString(),
     client_id: "none",
     lead_id: "none",
   });
