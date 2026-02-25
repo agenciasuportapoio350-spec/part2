@@ -5,57 +5,106 @@ export function cn(...inputs) {
   return twMerge(clsx(inputs));
 }
 
+// ============ MOEDA BRL ============
+
 export function formatCurrency(value) {
+  const num = typeof value === 'string' ? parseFloat(value) : value;
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
-  }).format(value);
+  }).format(num || 0);
 }
 
+// Formata número para exibição no input (1234.56 -> "1.234,56")
+export function formatCurrencyInput(value) {
+  if (!value && value !== 0) return "";
+  const num = typeof value === 'string' ? parseFloat(value) : value;
+  return num.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// Parse string formatada para número (1.234,56 -> 1234.56)
+export function parseCurrencyInput(value) {
+  if (!value) return 0;
+  // Remove pontos de milhar e troca vírgula por ponto
+  const cleaned = value.replace(/\./g, "").replace(",", ".");
+  const num = parseFloat(cleaned);
+  return isNaN(num) ? 0 : num;
+}
+
+// Máscara de moeda enquanto digita
+export function maskCurrency(value) {
+  // Remove tudo que não é número
+  let v = value.replace(/\D/g, "");
+  // Converte para centavos
+  v = (parseInt(v) / 100).toFixed(2);
+  // Formata para pt-BR
+  return v === "NaN" ? "0,00" : parseFloat(v).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// ============ DATAS (DATE-ONLY - SEM TIMEZONE) ============
+
+// Retorna data de hoje como string "YYYY-MM-DD" (local, sem UTC)
+export function getTodayDateString() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+// Formata "YYYY-MM-DD" ou "YYYY-MM-DDTHH:mm:ss" para "DD/MM/YYYY" (sem new Date UTC)
 export function formatDate(dateString) {
   if (!dateString) return "-";
-  const date = new Date(dateString);
-  return new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(date);
+  // Pega apenas a parte da data (antes do T se existir)
+  const datePart = dateString.split("T")[0];
+  const [year, month, day] = datePart.split("-");
+  if (!year || !month || !day) return "-";
+  return `${day}/${month}/${year}`;
 }
 
+// Formata datetime ISO para "DD/MM/YYYY HH:mm"
 export function formatDateTime(dateString) {
   if (!dateString) return "-";
-  const date = new Date(dateString);
-  return new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
+  const [datePart, timePart] = dateString.split("T");
+  const [year, month, day] = datePart.split("-");
+  if (!year || !month || !day) return "-";
+  
+  let time = "";
+  if (timePart) {
+    const [hour, minute] = timePart.split(":");
+    time = ` ${hour}:${minute}`;
+  }
+  return `${day}/${month}/${year}${time}`;
 }
 
+// Verifica se a data é hoje (comparação de strings, sem timezone)
 export function isToday(dateString) {
   if (!dateString) return false;
-  const date = new Date(dateString);
-  const today = new Date();
-  return date.toDateString() === today.toDateString();
+  const datePart = dateString.split("T")[0];
+  const today = getTodayDateString();
+  return datePart === today;
 }
 
+// Verifica se a data é passada (comparação de strings)
 export function isPast(dateString) {
   if (!dateString) return false;
-  const date = new Date(dateString);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return date < today;
+  const datePart = dateString.split("T")[0];
+  const today = getTodayDateString();
+  return datePart < today;
 }
 
+// Verifica se a data está nos próximos 7 dias
 export function isThisWeek(dateString) {
   if (!dateString) return false;
-  const date = new Date(dateString);
-  const today = new Date();
-  const weekEnd = new Date(today);
-  weekEnd.setDate(today.getDate() + 7);
-  return date >= today && date <= weekEnd;
+  const datePart = dateString.split("T")[0];
+  const today = getTodayDateString();
+  
+  // Calcula data de 7 dias à frente
+  const now = new Date();
+  now.setDate(now.getDate() + 7);
+  const weekEnd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  
+  return datePart >= today && datePart <= weekEnd;
 }
 
 export const PIPELINE_STAGES = {
