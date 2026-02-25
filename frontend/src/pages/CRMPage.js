@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import api from "../lib/api";
-import { formatCurrency, formatDate, PIPELINE_STAGES } from "../lib/utils";
+import { formatCurrency, formatDate, PIPELINE_STAGES, maskCurrency, parseCurrencyInput, formatCurrencyInput } from "../lib/utils";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
