@@ -19,6 +19,7 @@ export default function FinancePage() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState("all");
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, paymentId: null });
   const [formData, setFormData] = useState({
     client_id: "",
     description: "",
