@@ -44,7 +44,12 @@ export default function ClientsPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.post("/clients", formData);
+      // Converte valor formatado para número antes de enviar
+      const dataToSend = {
+        ...formData,
+        contract_value: parseCurrencyInput(formData.contract_value),
+      };
+      await api.post("/clients", dataToSend);
       toast.success("Cliente criado com sucesso!");
       fetchClients();
       closeModal();
@@ -72,7 +77,7 @@ export default function ClientsPage() {
       email: "",
       phone: "",
       company: "",
-      contract_value: 0,
+      contract_value: "",
       notes: "",
     });
   };
