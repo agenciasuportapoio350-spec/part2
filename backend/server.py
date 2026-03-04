@@ -604,34 +604,6 @@ async def convert_lead_to_client(lead_id: str, user: dict = Depends(get_current_
     }
     await db.clients.insert_one(client_doc)
     
-    # Create recurring monthly tasks
-    today = datetime.now(timezone.utc)
-    recurring_tasks = [
-        {"title": "Postagem 1 do mês", "task_type": "recorrente"},
-        {"title": "Postagem 2 do mês", "task_type": "recorrente"},
-        {"title": "Postagem 3 do mês", "task_type": "recorrente"},
-        {"title": "Postagem 4 do mês", "task_type": "recorrente"},
-        {"title": "Análise mensal", "task_type": "recorrente"},
-        {"title": "Pedido de avaliação mensal", "task_type": "recorrente"},
-    ]
-    
-    for i, task in enumerate(recurring_tasks):
-        task_doc = {
-            "id": str(uuid.uuid4()),
-            "title": task["title"],
-            "description": f"Tarefa recorrente para {lead['name']}",
-            "task_type": task["task_type"],
-            "due_date": (today + timedelta(days=(i + 1) * 5)).isoformat(),
-            "completed": False,
-            "client_id": client_id,
-            "client_name": lead["name"],
-            "lead_id": None,
-            "lead_name": None,
-            "user_id": user["id"],
-            "created_at": now
-        }
-        await db.tasks.insert_one(task_doc)
-    
     # Update lead stage to "fechado"
     await db.leads.update_one({"id": lead_id}, {"$set": {"stage": "fechado", "updated_at": now}})
     
