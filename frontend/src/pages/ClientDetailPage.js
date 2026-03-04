@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { ConfirmDialog } from "../components/ui/confirm-dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Building, Phone, Mail, DollarSign, Calendar, CheckCircle2, Circle, Loader2, Pencil, Plus, RefreshCw, User, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Building, Phone, Mail, DollarSign, Calendar, CheckCircle2, Circle, Loader2, Pencil, Plus, RefreshCw, User, AlertTriangle, MessageCircle } from "lucide-react";
 
 export default function ClientDetailPage() {
   const { id } = useParams();
@@ -255,6 +255,20 @@ export default function ClientDetailPage() {
         </div>
         
         <div className="flex items-center gap-2">
+          {client.phone && (
+            <Button
+              variant="outline"
+              className="gap-2 text-green-600 border-green-200 hover:bg-green-50"
+              onClick={() => {
+                const phone = client.phone.replace(/\D/g, '');
+                window.open(`https://wa.me/55${phone}`, '_blank');
+              }}
+              data-testid="whatsapp-btn"
+            >
+              <MessageCircle className="w-4 h-4" />
+              WhatsApp
+            </Button>
+          )}
           <Button variant="outline" onClick={openEditModal} className="gap-2">
             <Pencil className="w-4 h-4" />
             Editar
