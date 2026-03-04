@@ -47,26 +47,35 @@ export function formatDateTime(dateString) {
 
 export function isToday(dateString) {
   if (!dateString) return false;
-  const date = new Date(dateString);
+  // Extrair apenas a parte da data (YYYY-MM-DD)
+  const datePart = dateString.split("T")[0];
   const today = new Date();
-  return date.toDateString() === today.toDateString();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  return datePart === todayStr;
 }
 
 export function isPast(dateString) {
   if (!dateString) return false;
-  const date = new Date(dateString);
+  // Extrair apenas a parte da data (YYYY-MM-DD)
+  const datePart = dateString.split("T")[0];
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return date < today;
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  // Comparar strings de data (YYYY-MM-DD é comparável lexicograficamente)
+  return datePart < todayStr;
 }
 
 export function isThisWeek(dateString) {
   if (!dateString) return false;
-  const date = new Date(dateString);
+  // Extrair apenas a parte da data (YYYY-MM-DD)
+  const datePart = dateString.split("T")[0];
   const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  
   const weekEnd = new Date(today);
   weekEnd.setDate(today.getDate() + 7);
-  return date >= today && date <= weekEnd;
+  const weekEndStr = `${weekEnd.getFullYear()}-${String(weekEnd.getMonth() + 1).padStart(2, '0')}-${String(weekEnd.getDate()).padStart(2, '0')}`;
+  
+  return datePart >= todayStr && datePart <= weekEndStr;
 }
 
 export const PIPELINE_STAGES = {
