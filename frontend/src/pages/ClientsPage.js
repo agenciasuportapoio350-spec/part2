@@ -9,7 +9,7 @@ import { Textarea } from "../components/ui/textarea";
 import { Card, CardContent } from "../components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Search, Building, Phone, Mail, DollarSign, ChevronRight, Trash2 } from "lucide-react";
+import { Plus, Search, Building, Phone, Mail, DollarSign, ChevronRight, Trash2, MessageCircle } from "lucide-react";
 
 export default function ClientsPage() {
   const navigate = useNavigate();
@@ -171,9 +171,25 @@ export default function ClientsPage() {
 
                 <div className="space-y-2 text-sm text-slate-500">
                   {client.phone && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-4 h-4" />
-                      <span>{client.phone}</span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-4 h-4" />
+                        <span>{client.phone}</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const phone = client.phone.replace(/\D/g, '');
+                          window.open(`https://wa.me/55${phone}`, '_blank');
+                        }}
+                        title="Abrir WhatsApp"
+                        data-testid={`whatsapp-client-${client.id}`}
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                      </Button>
                     </div>
                   )}
                   {client.email && (
@@ -262,12 +278,14 @@ export default function ClientsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Valor do Contrato</Label>
+                <Label>Valor do Contrato (R$)</Label>
                 <Input
                   type="number"
                   step="0.01"
-                  value={formData.contract_value}
-                  onChange={(e) => setFormData({ ...formData, contract_value: parseFloat(e.target.value) || 0 })}
+                  min="0"
+                  placeholder="0,00"
+                  value={formData.contract_value || ""}
+                  onChange={(e) => setFormData({ ...formData, contract_value: e.target.value === "" ? 0 : parseFloat(e.target.value) })}
                   data-testid="client-value-input"
                 />
               </div>

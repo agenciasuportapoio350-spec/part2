@@ -452,6 +452,25 @@ async def create_lead(data: LeadCreate, user: dict = Depends(get_current_user)):
         "updated_at": now
     }
     await db.leads.insert_one(lead_doc)
+    
+    # Se definiu próximo contato, criar tarefa na agenda automaticamente
+    if data.next_contact:
+        task_doc = {
+            "id": str(uuid.uuid4()),
+            "title": f"Follow-up: {data.name}",
+            "description": data.reminder or f"Lembrete de contato com {data.name}",
+            "task_type": "follow_up",
+            "due_date": data.next_contact,
+            "completed": False,
+            "client_id": None,
+            "client_name": None,
+            "lead_id": lead_id,
+            "lead_name": data.name,
+            "user_id": user["id"],
+            "created_at": now
+        }
+        await db.tasks.insert_one(task_doc)
+    
     return lead_doc
 
 @api_router.put("/leads/{lead_id}", response_model=LeadResponse)
@@ -465,6 +484,34 @@ async def update_lead(lead_id: str, data: LeadUpdate, user: dict = Depends(get_c
     
     update_data = {k: v for k, v in data.model_dump().items() if v is not None}
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    # Se definiu próximo contato, criar tarefa na agenda automaticamente
+    if data.next_contact and data.next_contact != lead.get("next_contact"):
+        # Verificar se já existe tarefa de follow-up para este lead nesta data
+        existing_task = await db.tasks.find_one({
+            "lead_id": lead_id,
+            "task_type": "follow_up",
+            "due_date": data.next_contact,
+            "user_id": user["id"]
+        })
+        
+        if not existing_task:
+            now = datetime.now(timezone.utc).isoformat()
+            task_doc = {
+                "id": str(uuid.uuid4()),
+                "title": f"Follow-up: {lead['name']}",
+                "description": data.reminder or f"Lembrete de contato com {lead['name']}",
+                "task_type": "follow_up",
+                "due_date": data.next_contact,
+                "completed": False,
+                "client_id": None,
+                "client_name": None,
+                "lead_id": lead_id,
+                "lead_name": lead["name"],
+                "user_id": user["id"],
+                "created_at": now
+            }
+            await db.tasks.insert_one(task_doc)
     
     await db.leads.update_one({"id": lead_id}, {"$set": update_data})
     updated = await db.leads.find_one({"id": lead_id}, {"_id": 0})

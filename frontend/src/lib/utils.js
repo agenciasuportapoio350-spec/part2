@@ -14,11 +14,22 @@ export function formatCurrency(value) {
 
 export function formatDate(dateString) {
   if (!dateString) return "-";
+  // Criar data sem ajuste de timezone (para datas tipo YYYY-MM-DD)
+  const parts = dateString.split("T")[0].split("-");
+  if (parts.length === 3) {
+    const date = new Date(parts[0], parts[1] - 1, parts[2]);
+    return new Intl.DateTimeFormat("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(date);
+  }
   const date = new Date(dateString);
   return new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
+    timeZone: "America/Sao_Paulo",
   }).format(date);
 }
 
