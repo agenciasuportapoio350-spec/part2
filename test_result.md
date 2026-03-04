@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Testar os bugs corrigidos no RankFlow - 4 bugs específicos relacionados a moeda BRL, conversão de leads, tarefas do dia e datas de pagamento"
+user_problem_statement: "Testar as funcionalidades da Etapa 3 do RankFlow - campo 'plan' nos clientes (criar com plan='recorrente', atualizar de 'unico' para 'recorrente', verificar estrutura retornada)"
 
 backend:
   - task: "Bug 1 - Moeda BRL contract_value"
@@ -156,6 +156,42 @@ backend:
         -agent: "testing"
         -comment: "✅ PASS - Payment dates are correctly saved and returned in exact YYYY-MM-DD format. Test with '2026-02-25' returns exactly '2026-02-25' both on creation and retrieval."
 
+  - task: "Etapa 3 - Campo plan nos clientes (POST)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "testing"
+        -comment: "✅ PASS - POST /api/clients with plan='recorrente' works correctly. Client created with all fields including plan field properly saved and returned."
+
+  - task: "Etapa 3 - Campo plan nos clientes (PUT)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "testing"
+        -comment: "✅ PASS - PUT /api/clients/{id} successfully updates plan field from 'unico' to 'recorrente'. Other fields remain unchanged during update."
+
+  - task: "Etapa 3 - Campo plan nos clientes (GET)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "testing"
+        -comment: "✅ PASS - GET /api/clients correctly returns all clients with plan field. Found 10 clients, all with plan field present. Supports both 'unico' and 'recorrente' values."
+
 metadata:
   created_by: "testing_agent"
   version: "1.0"
@@ -173,3 +209,5 @@ agent_communication:
     -message: "Completed comprehensive testing of all 4 RankFlow bugs. 3 out of 4 bugs are working correctly. Bug 2 requires implementation of automatic lead-to-client conversion logic in the update_lead function when stage changes to 'fechado'. The manual conversion endpoint exists and works perfectly, but the automatic trigger is missing."
     -agent: "testing"
     -message: "UPDATE: Bug 2 has been successfully FIXED! Retested the automatic lead-to-client conversion functionality. The fix is working perfectly - when a lead's stage is updated to 'fechado' via PUT /api/leads/{id}, the system now automatically creates a client with all the lead's data. Tested the exact flow requested in the review and confirmed: 1) Login works 2) Lead creation successful 3) Client count tracking accurate 4) Automatic conversion triggers correctly 5) Client data matches lead data. All 4 RankFlow bugs are now working correctly."
+    -agent: "testing"
+    -message: "ETAPA 3 COMPLETED: Successfully tested all plan field functionality for RankFlow. All 3 test cases PASSED: 1) POST /api/clients with plan='recorrente' creates clients correctly with plan field saved 2) PUT /api/clients/{id} successfully updates plan from 'unico' to 'recorrente' 3) GET /api/clients returns all clients with plan field present (found 10 clients, all with plan field). The backend already had full support for the plan field implemented in ClientCreate, ClientUpdate, and ClientResponse models. Authentication with admin@rankflow.com worked perfectly. Backend fully supports plan field functionality as requested."
