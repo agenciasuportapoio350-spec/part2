@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../components/ui/dropdown-menu";
 import { ConfirmDialog } from "../components/ui/confirm-dialog";
 import { toast } from "sonner";
-import { Plus, MoreVertical, Phone, Mail, Building, Calendar, DollarSign, Bell, Trash2, UserCheck, GripVertical } from "lucide-react";
+import { Plus, MoreVertical, Phone, Mail, Building, Calendar, DollarSign, Bell, Trash2, UserCheck, GripVertical, MessageCircle } from "lucide-react";
 
 const STAGES_ORDER = ["novo_lead", "contato_feito", "reuniao", "proposta", "fechado", "perdido"];
 
@@ -402,9 +402,24 @@ function LeadCard({ lead, onEdit, onDelete, onConvert, onStageChange }) {
       )}
 
       {lead.phone && (
-        <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
-          <Phone className="w-3.5 h-3.5" />
-          <span>{lead.phone}</span>
+        <div className="flex items-center justify-between text-sm text-slate-500 mb-2">
+          <div className="flex items-center gap-2">
+            <Phone className="w-3.5 h-3.5" />
+            <span>{lead.phone}</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-green-600 hover:bg-green-50"
+            onClick={(e) => {
+              e.stopPropagation();
+              const phone = lead.phone.replace(/\D/g, '');
+              window.open(`https://wa.me/55${phone}`, '_blank');
+            }}
+            data-testid={`whatsapp-lead-${lead.id}`}
+          >
+            <MessageCircle className="w-4 h-4" />
+          </Button>
         </div>
       )}
 
