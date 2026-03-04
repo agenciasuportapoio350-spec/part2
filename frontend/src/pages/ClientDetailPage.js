@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { ConfirmDialog } from "../components/ui/confirm-dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Building, Phone, Mail, DollarSign, Calendar, CheckCircle2, Circle, Loader2, Pencil, Plus, RefreshCw, User } from "lucide-react";
+import { ArrowLeft, Building, Phone, Mail, DollarSign, Calendar, CheckCircle2, Circle, Loader2, Pencil, Plus, RefreshCw, User, AlertTriangle } from "lucide-react";
 
 export default function ClientDetailPage() {
   const { id } = useParams();
@@ -135,6 +135,23 @@ export default function ClientDetailPage() {
     }
   };
 
+  const toggleWeeklyChecklistItem = async (itemId) => {
+    const item = client.weekly_checklist?.items?.find(i => i.id === itemId);
+    // Se vai marcar como concluído, pedir confirmação
+    if (item && !item.completed) {
+      setConfirmDialog({ open: true, type: "weekly", itemId });
+      return;
+    }
+    // Se vai desmarcar, fazer direto
+    try {
+      await api.put(`/clients/${id}/weekly-checklist/${itemId}`);
+      fetchClient();
+      toast.success("Item semanal atualizado!");
+    } catch (error) {
+      toast.error("Erro ao atualizar item semanal");
+    }
+  };
+
   const toggleTaskComplete = async (taskId, currentStatus) => {
     // Se vai concluir, pedir confirmação
     if (!currentStatus) {
@@ -157,6 +174,10 @@ export default function ClientDetailPage() {
         await api.put(`/clients/${id}/checklist/${confirmDialog.itemId}`);
         fetchClient();
         toast.success("Item concluído!");
+      } else if (confirmDialog.type === "weekly") {
+        await api.put(`/clients/${id}/weekly-checklist/${confirmDialog.itemId}`);
+        fetchClient();
+        toast.success("Item semanal concluído!");
       } else if (confirmDialog.type === "task") {
         await api.put(`/tasks/${confirmDialog.taskId}`, { completed: true });
         fetchTasks();
@@ -166,6 +187,23 @@ export default function ClientDetailPage() {
       toast.error("Erro ao executar ação");
     }
     setConfirmDialog({ open: false, type: null, taskId: null, itemId: null });
+  };
+
+  // Verificar se checklist semanal está atrasado
+  const isWeeklyChecklistOverdue = () => {
+    if (!client.weekly_checklist?.enabled) return false;
+    const weekStart = client.weekly_checklist?.week_start;
+    if (!weekStart) return false;
+    
+    // Calcular segunda-feira desta semana
+    const today = new Date();
+    const currentMonday = new Date(today);
+    currentMonday.setDate(today.getDate() - today.getDay() + 1);
+    const currentMondayStr = currentMonday.toISOString().split("T")[0];
+    
+    // Se a semana do checklist é anterior à semana atual e há itens não completos
+    const hasIncomplete = client.weekly_checklist?.items?.some(i => !i.completed);
+    return weekStart < currentMondayStr && hasIncomplete;
   };
 
   if (loading) {
@@ -313,6 +351,78 @@ export default function ClientDetailPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Checklist Semanal (apenas para plano recorrente após completar checklist inicial) */}
+        {isRecorrente && client.weekly_checklist?.enabled && (
+          <Card className={`lg:col-span-2 ${isWeeklyChecklistOverdue() ? "border-red-300 bg-red-50/30" : "border-emerald-200 bg-emerald-50/30"}`} data-testid="weekly-checklist-card">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <RefreshCw className="w-5 h-5 text-emerald-600" />
+                  <CardTitle className="text-lg">Checklist Semanal</CardTitle>
+                </div>
+                <div className="flex items-center gap-2">
+                  {isWeeklyChecklistOverdue() && (
+                    <Badge className="bg-red-100 text-red-700 gap-1">
+                      <AlertTriangle className="w-3 h-3" />
+                      Atrasado
+                    </Badge>
+                  )}
+                  <Badge className="bg-emerald-100 text-emerald-700 font-mono">
+                    {client.weekly_checklist.items?.filter(i => i.completed).length || 0}/{client.weekly_checklist.items?.length || 0}
+                  </Badge>
+                </div>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                Semana iniciada em {formatDate(client.weekly_checklist.week_start)}
+              </p>
+              <div className="h-2 bg-emerald-100 rounded-full overflow-hidden mt-2">
+                <div
+                  className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                  style={{ 
+                    width: `${client.weekly_checklist.items?.length 
+                      ? (client.weekly_checklist.items.filter(i => i.completed).length / client.weekly_checklist.items.length) * 100 
+                      : 0}%` 
+                  }}
+                />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {client.weekly_checklist.items?.map((item) => (
+                  <div
+                    key={item.id}
+                    className={`flex items-center gap-3 p-3 rounded-lg border transition-all duration-200 cursor-pointer ${
+                      item.completed
+                        ? "bg-emerald-50 border-emerald-200"
+                        : isWeeklyChecklistOverdue() 
+                          ? "bg-red-50 border-red-200 hover:border-red-300" 
+                          : "bg-white border-slate-200 hover:border-slate-300"
+                    }`}
+                    onClick={() => toggleWeeklyChecklistItem(item.id)}
+                    data-testid={`weekly-item-${item.id}`}
+                  >
+                    <Checkbox
+                      checked={item.completed}
+                      onCheckedChange={() => toggleWeeklyChecklistItem(item.id)}
+                      className="data-[state=checked]:border-emerald-500 data-[state=checked]:bg-emerald-500"
+                    />
+                    <span className={`flex-1 ${item.completed ? "text-emerald-700 line-through" : isWeeklyChecklistOverdue() ? "text-red-700" : "text-slate-700"}`}>
+                      {item.title}
+                    </span>
+                    {item.completed ? (
+                      <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                    ) : isWeeklyChecklistOverdue() ? (
+                      <AlertTriangle className="w-5 h-5 text-red-500" />
+                    ) : (
+                      <Circle className="w-5 h-5 text-slate-300" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Tasks */}
         <Card className="lg:col-span-3" data-testid="tasks-card">

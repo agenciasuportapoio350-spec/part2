@@ -1,279 +1,273 @@
 #!/usr/bin/env python3
 """
-Backend tests for RankFlow - Etapa 3 (Plan field functionality)
-Tests:
-1. Creating clients with plan="recorrente"
-2. Updating client plan from "unico" to "recorrente"  
-3. Verifying GET /api/clients returns clients with plan field
+Backend test for RankFlow Etapa 4 - Checklists por Plano
+Tests the checklist functionality for "unico" and "recorrente" plans
 """
-
 import requests
 import json
-import uuid
-import sys
-from typing import Dict, Any
+from datetime import datetime
 
-# Configuration
-BASE_URL = "https://rankflow-1.preview.emergentagent.com/api"
-TEST_USER = {
-    "email": "admin@rankflow.com",
-    "password": "admin123456"
-}
+# Backend URL from frontend/.env
+BASE_URL = "https://rankflow-1.preview.emergentagent.com"
 
-class RankFlowTester:
-    def __init__(self):
-        self.token = None
-        self.headers = {}
+# Auth credentials
+ADMIN_EMAIL = "admin@rankflow.com"
+ADMIN_PASSWORD = "admin123456"
+
+def print_test(name):
+    print(f"\n{'='*60}")
+    print(f"TEST: {name}")
+    print('='*60)
+
+def print_result(success, message):
+    status = "✅ PASS" if success else "❌ FAIL"
+    print(f"{status} - {message}")
+
+def login():
+    """Login and return auth token"""
+    print_test("Authentication Login")
+    
+    response = requests.post(f"{BASE_URL}/api/auth/login", json={
+        "email": ADMIN_EMAIL,
+        "password": ADMIN_PASSWORD
+    })
+    
+    if response.status_code == 200:
+        token = response.json()["access_token"]
+        print_result(True, f"Login successful for {ADMIN_EMAIL}")
+        return token
+    else:
+        print_result(False, f"Login failed: {response.status_code} - {response.text}")
+        return None
+
+def test_create_client_unico_plan(token):
+    """Test creating client with 'unico' plan and verify 12 checklist items"""
+    print_test("Create Client with Unico Plan")
+    
+    headers = {"Authorization": f"Bearer {token}"}
+    client_data = {
+        "name": "Cliente Unico Teste",
+        "plan": "unico", 
+        "contract_value": 1000
+    }
+    
+    response = requests.post(f"{BASE_URL}/api/clients", json=client_data, headers=headers)
+    
+    if response.status_code == 200:
+        client = response.json()
+        print_result(True, f"Client created successfully: {client['name']}")
         
-    def login(self) -> bool:
-        """Authenticate and get access token"""
-        try:
-            print("🔐 Logging in...")
-            response = requests.post(f"{BASE_URL}/auth/login", json=TEST_USER)
-            
-            if response.status_code != 200:
-                print(f"❌ Login failed: {response.status_code} - {response.text}")
-                return False
-            
-            data = response.json()
-            self.token = data.get("access_token")
-            self.headers = {"Authorization": f"Bearer {self.token}"}
-            print(f"✅ Login successful! Token: {self.token[:20]}...")
-            return True
-            
-        except Exception as e:
-            print(f"❌ Login error: {e}")
+        # Check checklist has 12 items
+        checklist = client.get('checklist', [])
+        checklist_count = len(checklist)
+        print_result(checklist_count == 12, f"Checklist has {checklist_count} items (expected 12)")
+        
+        # Verify checklist item structure
+        if checklist:
+            first_item = checklist[0]
+            has_required_fields = all(field in first_item for field in ['id', 'title', 'completed', 'order'])
+            print_result(has_required_fields, f"Checklist items have required fields: {list(first_item.keys())}")
+        
+        # Verify specific titles are present
+        titles = [item['title'] for item in checklist]
+        expected_titles = ["Criar perfil", "Primeira postagem", "Segunda postagem", "Enviar acesso ao cliente"]
+        found_titles = [title for title in expected_titles if any(expected in item_title for item_title in titles for expected in [title])]
+        print_result(len(found_titles) == len(expected_titles), f"Found expected titles: {found_titles}")
+        
+        # Verify weekly_checklist is null for unico plan
+        weekly_checklist = client.get('weekly_checklist')
+        print_result(weekly_checklist is None, f"Weekly checklist is null for unico plan: {weekly_checklist}")
+        
+        return client['id']
+    else:
+        print_result(False, f"Failed to create client: {response.status_code} - {response.text}")
+        return None
+
+def test_create_client_recorrente_plan(token):
+    """Test creating client with 'recorrente' plan and verify 12 checklist items"""
+    print_test("Create Client with Recorrente Plan")
+    
+    headers = {"Authorization": f"Bearer {token}"}
+    client_data = {
+        "name": "Cliente Recorrente Teste", 
+        "plan": "recorrente",
+        "contract_value": 2000
+    }
+    
+    response = requests.post(f"{BASE_URL}/api/clients", json=client_data, headers=headers)
+    
+    if response.status_code == 200:
+        client = response.json()
+        print_result(True, f"Client created successfully: {client['name']}")
+        
+        # Check checklist has 12 items
+        checklist = client.get('checklist', [])
+        checklist_count = len(checklist)
+        print_result(checklist_count == 12, f"Checklist has {checklist_count} items (expected 12)")
+        
+        # Verify weekly_checklist is null initially
+        weekly_checklist = client.get('weekly_checklist')
+        print_result(weekly_checklist is None, f"Weekly checklist is null initially: {weekly_checklist}")
+        
+        # Verify initial_checklist_completed is False
+        initial_completed = client.get('initial_checklist_completed', False)
+        print_result(initial_completed == False, f"Initial checklist completed status: {initial_completed}")
+        
+        return client['id'], checklist
+    else:
+        print_result(False, f"Failed to create client: {response.status_code} - {response.text}")
+        return None, []
+
+def test_checklist_titles(checklist):
+    """Test that checklist contains expected titles"""
+    print_test("Verify Checklist Initial Titles (12 steps)")
+    
+    titles = [item['title'] for item in checklist]
+    print(f"Found {len(titles)} checklist items:")
+    for i, title in enumerate(titles, 1):
+        print(f"  {i}. {title}")
+    
+    # Expected titles based on CHECKLIST_INICIAL from server.py
+    expected_titles = [
+        "Criar perfil",
+        "Primeira postagem", 
+        "Segunda postagem",
+        "Enviar acesso ao cliente"
+    ]
+    
+    all_found = True
+    for expected in expected_titles:
+        found = any(expected in title for title in titles)
+        print_result(found, f"Title contains '{expected}': {found}")
+        if not found:
+            all_found = False
+    
+    return all_found
+
+def test_complete_all_checklist_items(token, client_id, checklist):
+    """Complete all 12 checklist items and verify weekly checklist activation"""
+    print_test("Complete All Checklist Items and Activate Weekly Checklist")
+    
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    # Complete each checklist item
+    for i, item in enumerate(checklist):
+        item_id = item['id']
+        response = requests.put(f"{BASE_URL}/api/clients/{client_id}/checklist/{item_id}", headers=headers)
+        
+        if response.status_code == 200:
+            print_result(True, f"Completed item {i+1}: {item['title']}")
+        else:
+            print_result(False, f"Failed to complete item {i+1}: {response.status_code}")
             return False
-
-    def test_create_client_with_plan_recorrente(self) -> bool:
-        """Test 1: Create client with plan='recorrente'"""
-        print("\n📝 Test 1: Creating client with plan='recorrente'...")
+    
+    # Get updated client to check weekly checklist activation
+    response = requests.get(f"{BASE_URL}/api/clients/{client_id}", headers=headers)
+    
+    if response.status_code == 200:
+        updated_client = response.json()
         
-        try:
-            # Create unique client data
-            unique_name = f"Cliente Recorrente Test {uuid.uuid4().hex[:8]}"
-            client_data = {
-                "name": unique_name,
-                "email": f"cliente.recorrente.{uuid.uuid4().hex[:8]}@teste.com",
-                "phone": "+5511999887766",
-                "company": "Empresa Recorrente Ltda",
-                "contract_value": 2500.50,
-                "plan": "recorrente",
-                "notes": "Cliente criado para teste do campo plan"
-            }
+        # Check if initial checklist is marked as completed
+        initial_completed = updated_client.get('initial_checklist_completed', False)
+        print_result(initial_completed == True, f"Initial checklist marked as completed: {initial_completed}")
+        
+        # Check if weekly checklist was activated
+        weekly_checklist = updated_client.get('weekly_checklist')
+        if weekly_checklist:
+            enabled = weekly_checklist.get('enabled', False)
+            print_result(enabled == True, f"Weekly checklist enabled: {enabled}")
             
-            response = requests.post(f"{BASE_URL}/clients", 
-                                   json=client_data, 
-                                   headers=self.headers)
+            # Check weekly checklist has 5 items
+            weekly_items = weekly_checklist.get('items', [])
+            weekly_count = len(weekly_items)
+            print_result(weekly_count == 5, f"Weekly checklist has {weekly_count} items (expected 5)")
             
-            if response.status_code != 200:
-                print(f"❌ Create client failed: {response.status_code} - {response.text}")
-                return False
+            # Print weekly checklist titles
+            if weekly_items:
+                print("Weekly checklist items:")
+                for i, item in enumerate(weekly_items, 1):
+                    print(f"  {i}. {item['title']}")
             
-            created_client = response.json()
+            return True
+        else:
+            print_result(False, "Weekly checklist not activated")
+            return False
+    else:
+        print_result(False, f"Failed to get updated client: {response.status_code}")
+        return False
+
+def test_weekly_checklist_functionality(token, client_id):
+    """Test weekly checklist item completion"""
+    print_test("Weekly Checklist Item Toggle")
+    
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    # Get client to access weekly checklist
+    response = requests.get(f"{BASE_URL}/api/clients/{client_id}", headers=headers)
+    
+    if response.status_code == 200:
+        client = response.json()
+        weekly_checklist = client.get('weekly_checklist')
+        
+        if weekly_checklist and weekly_checklist.get('enabled'):
+            weekly_items = weekly_checklist.get('items', [])
             
-            # Verify plan field is saved correctly
-            if created_client.get("plan") != "recorrente":
-                print(f"❌ Plan field not saved correctly. Expected: 'recorrente', Got: {created_client.get('plan')}")
-                return False
-            
-            # Verify other fields
-            if created_client.get("name") != unique_name:
-                print(f"❌ Name not saved correctly. Expected: {unique_name}, Got: {created_client.get('name')}")
-                return False
+            if weekly_items:
+                # Test completing first weekly item
+                first_item_id = weekly_items[0]['id']
+                response = requests.put(f"{BASE_URL}/api/clients/{client_id}/weekly-checklist/{first_item_id}", headers=headers)
                 
-            if abs(created_client.get("contract_value", 0) - 2500.50) > 0.01:
-                print(f"❌ Contract value not saved correctly. Expected: 2500.50, Got: {created_client.get('contract_value')}")
-                return False
-            
-            print(f"✅ Client created successfully with plan='recorrente'")
-            print(f"   Client ID: {created_client.get('id')}")
-            print(f"   Name: {created_client.get('name')}")
-            print(f"   Plan: {created_client.get('plan')}")
-            print(f"   Contract Value: {created_client.get('contract_value')}")
-            
-            # Store client ID for later tests
-            self.test_client_id = created_client.get("id")
-            return True
-            
-        except Exception as e:
-            print(f"❌ Test 1 error: {e}")
-            return False
-
-    def test_update_client_plan(self) -> bool:
-        """Test 2: Update existing client plan from 'unico' to 'recorrente'"""
-        print("\n🔄 Test 2: Updating client plan from 'unico' to 'recorrente'...")
-        
-        try:
-            # First create a client with plan="unico"
-            unique_name = f"Cliente Unico Test {uuid.uuid4().hex[:8]}"
-            client_data = {
-                "name": unique_name,
-                "email": f"cliente.unico.{uuid.uuid4().hex[:8]}@teste.com",
-                "phone": "+5511888777666",
-                "company": "Empresa Única Ltda",
-                "contract_value": 1500.75,
-                "plan": "unico",
-                "notes": "Cliente para teste de atualização do plan"
-            }
-            
-            # Create client
-            response = requests.post(f"{BASE_URL}/clients", 
-                                   json=client_data, 
-                                   headers=self.headers)
-            
-            if response.status_code != 200:
-                print(f"❌ Failed to create client for update test: {response.status_code} - {response.text}")
-                return False
-            
-            created_client = response.json()
-            client_id = created_client.get("id")
-            
-            # Verify initial plan is "unico"
-            if created_client.get("plan") != "unico":
-                print(f"❌ Initial plan not correct. Expected: 'unico', Got: {created_client.get('plan')}")
-                return False
-            
-            print(f"✅ Client created with plan='unico' (ID: {client_id})")
-            
-            # Now update the plan to "recorrente"
-            update_data = {
-                "plan": "recorrente"
-            }
-            
-            response = requests.put(f"{BASE_URL}/clients/{client_id}", 
-                                  json=update_data, 
-                                  headers=self.headers)
-            
-            if response.status_code != 200:
-                print(f"❌ Update client failed: {response.status_code} - {response.text}")
-                return False
-            
-            updated_client = response.json()
-            
-            # Verify plan was updated to "recorrente"
-            if updated_client.get("plan") != "recorrente":
-                print(f"❌ Plan not updated correctly. Expected: 'recorrente', Got: {updated_client.get('plan')}")
-                return False
-            
-            # Verify other fields remain unchanged
-            if updated_client.get("name") != unique_name:
-                print(f"❌ Name changed unexpectedly. Expected: {unique_name}, Got: {updated_client.get('name')}")
-                return False
-                
-            if abs(updated_client.get("contract_value", 0) - 1500.75) > 0.01:
-                print(f"❌ Contract value changed unexpectedly. Expected: 1500.75, Got: {updated_client.get('contract_value')}")
-                return False
-            
-            print(f"✅ Plan updated successfully from 'unico' to 'recorrente'")
-            print(f"   Client ID: {updated_client.get('id')}")
-            print(f"   Name: {updated_client.get('name')}")
-            print(f"   Updated Plan: {updated_client.get('plan')}")
-            
-            return True
-            
-        except Exception as e:
-            print(f"❌ Test 2 error: {e}")
-            return False
-
-    def test_get_clients_with_plan_field(self) -> bool:
-        """Test 3: Verify GET /api/clients returns clients with plan field"""
-        print("\n📋 Test 3: Verifying GET /api/clients returns plan field...")
-        
-        try:
-            response = requests.get(f"{BASE_URL}/clients", headers=self.headers)
-            
-            if response.status_code != 200:
-                print(f"❌ Get clients failed: {response.status_code} - {response.text}")
-                return False
-            
-            clients = response.json()
-            
-            if not isinstance(clients, list):
-                print(f"❌ Expected list of clients, got: {type(clients)}")
-                return False
-            
-            if len(clients) == 0:
-                print("⚠️  No clients found in database")
-                return True
-            
-            # Check that all clients have plan field
-            clients_with_plan = []
-            clients_without_plan = []
-            
-            for client in clients:
-                if "plan" in client:
-                    clients_with_plan.append(client)
+                if response.status_code == 200:
+                    print_result(True, f"Successfully toggled weekly checklist item: {weekly_items[0]['title']}")
+                    return True
                 else:
-                    clients_without_plan.append(client)
-            
-            print(f"📊 Found {len(clients)} total clients")
-            print(f"   - {len(clients_with_plan)} clients with 'plan' field")
-            print(f"   - {len(clients_without_plan)} clients without 'plan' field")
-            
-            if clients_without_plan:
-                print("⚠️  Some clients missing plan field:")
-                for client in clients_without_plan[:3]:  # Show first 3
-                    print(f"     - ID: {client.get('id')}, Name: {client.get('name')}")
-            
-            # Show some examples of clients with plan field
-            print("✅ Examples of clients with plan field:")
-            for client in clients_with_plan[:5]:  # Show first 5
-                print(f"   - Name: {client.get('name')}, Plan: {client.get('plan')}, ID: {client.get('id')[:8]}...")
-            
-            # Verify our test clients are included
-            test_clients_found = 0
-            for client in clients:
-                if "Test" in client.get("name", "") and client.get("plan") in ["unico", "recorrente"]:
-                    test_clients_found += 1
-                    print(f"   ✓ Found test client: {client.get('name')} (plan: {client.get('plan')})")
-            
-            print(f"✅ GET /api/clients successfully returns {len(clients)} clients with plan field structure")
-            return True
-            
-        except Exception as e:
-            print(f"❌ Test 3 error: {e}")
+                    print_result(False, f"Failed to toggle weekly item: {response.status_code}")
+                    return False
+            else:
+                print_result(False, "No weekly checklist items found")
+                return False
+        else:
+            print_result(False, "Weekly checklist not enabled")
             return False
-
-    def run_all_tests(self) -> bool:
-        """Run all plan field tests"""
-        print("🚀 Starting RankFlow Etapa 3 - Plan Field Tests")
-        print("=" * 60)
-        
-        # Login first
-        if not self.login():
-            return False
-        
-        # Run tests
-        test_results = []
-        
-        test_results.append(self.test_create_client_with_plan_recorrente())
-        test_results.append(self.test_update_client_plan())
-        test_results.append(self.test_get_clients_with_plan_field())
-        
-        # Summary
-        print("\n" + "=" * 60)
-        print("📋 TEST SUMMARY:")
-        tests = [
-            "Create client with plan='recorrente'",
-            "Update client plan 'unico' → 'recorrente'", 
-            "GET /api/clients returns plan field"
-        ]
-        
-        all_passed = True
-        for i, (test_name, result) in enumerate(zip(tests, test_results)):
-            status = "✅ PASS" if result else "❌ FAIL"
-            print(f"   {i+1}. {test_name}: {status}")
-            if not result:
-                all_passed = False
-        
-        print(f"\n🎯 OVERALL RESULT: {'✅ ALL TESTS PASSED' if all_passed else '❌ SOME TESTS FAILED'}")
-        return all_passed
+    else:
+        print_result(False, f"Failed to get client: {response.status_code}")
+        return False
 
 def main():
-    tester = RankFlowTester()
-    success = tester.run_all_tests()
-    sys.exit(0 if success else 1)
+    """Main test execution"""
+    print("RankFlow Etapa 4 - Checklist Testing")
+    print(f"Testing against: {BASE_URL}")
+    print(f"Test started at: {datetime.now()}")
+    
+    # Login
+    token = login()
+    if not token:
+        print("❌ Cannot proceed without authentication")
+        return
+    
+    # Test 1: Create client with unico plan
+    unico_client_id = test_create_client_unico_plan(token)
+    
+    # Test 2: Create client with recorrente plan
+    recorrente_client_id, initial_checklist = test_create_client_recorrente_plan(token)
+    
+    if not recorrente_client_id:
+        print("❌ Cannot proceed without recorrente client")
+        return
+    
+    # Test 3: Verify checklist titles
+    test_checklist_titles(initial_checklist)
+    
+    # Test 4: Complete all checklist items and activate weekly checklist
+    weekly_activated = test_complete_all_checklist_items(token, recorrente_client_id, initial_checklist)
+    
+    # Test 5: Test weekly checklist functionality
+    if weekly_activated:
+        test_weekly_checklist_functionality(token, recorrente_client_id)
+    
+    print(f"\n{'='*60}")
+    print("TESTING COMPLETED")
+    print('='*60)
 
 if __name__ == "__main__":
     main()

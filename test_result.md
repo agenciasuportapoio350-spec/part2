@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Testar as funcionalidades da Etapa 3 do RankFlow - campo 'plan' nos clientes (criar com plan='recorrente', atualizar de 'unico' para 'recorrente', verificar estrutura retornada)"
+user_problem_statement: "Testar a Etapa 4 - Checklists por Plano do RankFlow: criar clientes com planos único/recorrente, verificar 12 itens do checklist inicial, testar ativação do checklist semanal após completar todos os itens"
 
 backend:
   - task: "Bug 1 - Moeda BRL contract_value"
@@ -192,10 +192,58 @@ backend:
         -agent: "testing"
         -comment: "✅ PASS - GET /api/clients correctly returns all clients with plan field. Found 10 clients, all with plan field present. Supports both 'unico' and 'recorrente' values."
 
+  - task: "Etapa 4 - Criar cliente com plano único"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "testing"
+        -comment: "✅ PASS - POST /api/clients with plan='unico' creates client with exactly 12 checklist items. Checklist items have proper structure (id, title, completed, order). Weekly_checklist remains null for unico plan as expected."
+
+  - task: "Etapa 4 - Criar cliente com plano recorrente"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "testing"
+        -comment: "✅ PASS - POST /api/clients with plan='recorrente' creates client with exactly 12 checklist items. Weekly_checklist is null initially and initial_checklist_completed is false, as expected."
+
+  - task: "Etapa 4 - Verificar itens do checklist inicial"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "testing"
+        -comment: "✅ PASS - Initial checklist contains all 12 expected steps including required titles: 'Criar perfil / Reivindicar acesso', 'Primeira postagem', 'Segunda postagem', 'Enviar acesso ao cliente'. Full checklist verified with proper sequence and structure."
+
+  - task: "Etapa 4 - Ativação do checklist semanal"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "testing"
+        -comment: "✅ PASS - After completing all 12 initial checklist items via PUT /api/clients/{id}/checklist/{item_id}, the weekly checklist is automatically activated for recorrente clients. Weekly checklist has exactly 5 items: 'Postagem 1 da semana', 'Postagem 2 da semana', 'Postagem 3 da semana', 'Pedido de avaliação', 'Resposta de avaliação'. Weekly checklist toggle functionality via PUT /api/clients/{id}/weekly-checklist/{item_id} works correctly."
+
 metadata:
   created_by: "testing_agent"
   version: "1.0"
-  test_sequence: 2
+  test_sequence: 3
   run_ui: false
 
 test_plan:
@@ -211,3 +259,5 @@ agent_communication:
     -message: "UPDATE: Bug 2 has been successfully FIXED! Retested the automatic lead-to-client conversion functionality. The fix is working perfectly - when a lead's stage is updated to 'fechado' via PUT /api/leads/{id}, the system now automatically creates a client with all the lead's data. Tested the exact flow requested in the review and confirmed: 1) Login works 2) Lead creation successful 3) Client count tracking accurate 4) Automatic conversion triggers correctly 5) Client data matches lead data. All 4 RankFlow bugs are now working correctly."
     -agent: "testing"
     -message: "ETAPA 3 COMPLETED: Successfully tested all plan field functionality for RankFlow. All 3 test cases PASSED: 1) POST /api/clients with plan='recorrente' creates clients correctly with plan field saved 2) PUT /api/clients/{id} successfully updates plan from 'unico' to 'recorrente' 3) GET /api/clients returns all clients with plan field present (found 10 clients, all with plan field). The backend already had full support for the plan field implemented in ClientCreate, ClientUpdate, and ClientResponse models. Authentication with admin@rankflow.com worked perfectly. Backend fully supports plan field functionality as requested."
+    -agent: "testing"
+    -message: "ETAPA 4 COMPLETED: Successfully tested all checklist functionality for RankFlow. All 4 test cases PASSED: 1) POST /api/clients with plan='unico' creates clients with exactly 12 checklist items, weekly_checklist remains null 2) POST /api/clients with plan='recorrente' creates clients with 12 checklist items, weekly_checklist null initially 3) Initial checklist verified to contain all required titles including 'Criar perfil', 'Primeira postagem', 'Segunda postagem', 'Enviar acesso ao cliente' 4) After completing all 12 initial items, weekly checklist automatically activates with exactly 5 items for recorrente clients. Weekly checklist toggle functionality works correctly. Authentication with admin@rankflow.com worked perfectly. Backend fully supports checklist functionality as requested."
