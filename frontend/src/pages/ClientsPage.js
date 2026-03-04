@@ -7,9 +7,11 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Textarea } from "../components/ui/textarea";
 import { Card, CardContent } from "../components/ui/card";
+import { Badge } from "../components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { toast } from "sonner";
-import { Plus, Search, Building, Phone, Mail, DollarSign, ChevronRight, Trash2, MessageCircle } from "lucide-react";
+import { Plus, Search, Building, Phone, Mail, DollarSign, ChevronRight, Trash2, MessageCircle, RefreshCw, User } from "lucide-react";
 
 export default function ClientsPage() {
   const navigate = useNavigate();
@@ -23,6 +25,7 @@ export default function ClientsPage() {
     phone: "",
     company: "",
     contract_value: 0,
+    plan: "recorrente",
     notes: "",
   });
 
@@ -73,8 +76,16 @@ export default function ClientsPage() {
       phone: "",
       company: "",
       contract_value: 0,
+      plan: "recorrente",
       notes: "",
     });
+  };
+
+  const getPlanBadge = (plan) => {
+    if (plan === "unico") {
+      return <Badge variant="outline" className="text-xs border-slate-300 text-slate-600"><User className="w-3 h-3 mr-1" />Único</Badge>;
+    }
+    return <Badge variant="outline" className="text-xs border-blue-300 text-blue-600 bg-blue-50"><RefreshCw className="w-3 h-3 mr-1" />Recorrente</Badge>;
   };
 
   const filteredClients = clients.filter(
@@ -154,6 +165,9 @@ export default function ClientsPage() {
                         <span>{client.company}</span>
                       </div>
                     )}
+                    <div className="mt-2">
+                      {getPlanBadge(client.plan)}
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -288,6 +302,21 @@ export default function ClientsPage() {
                   onChange={(e) => setFormData({ ...formData, contract_value: e.target.value === "" ? 0 : parseFloat(e.target.value) })}
                   data-testid="client-value-input"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label>Plano do Cliente *</Label>
+                <Select
+                  value={formData.plan}
+                  onValueChange={(value) => setFormData({ ...formData, plan: value })}
+                >
+                  <SelectTrigger data-testid="client-plan-select">
+                    <SelectValue placeholder="Selecione o plano" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="recorrente">Cliente Recorrente</SelectItem>
+                    <SelectItem value="unico">Cliente Único</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="col-span-2 space-y-2">
                 <Label>Notas</Label>

@@ -145,7 +145,22 @@ class ClientCreate(BaseModel):
     phone: Optional[str] = None
     company: Optional[str] = None
     contract_value: float = 0.0
+    plan: str = "recorrente"  # "unico" ou "recorrente"
     notes: Optional[str] = None
+
+class ClientUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    company: Optional[str] = None
+    contract_value: Optional[float] = None
+    plan: Optional[str] = None
+    notes: Optional[str] = None
+
+class WeeklyTask(BaseModel):
+    id: str
+    title: str
+    completed: bool = False
 
 class ClientResponse(BaseModel):
     id: str
@@ -154,8 +169,11 @@ class ClientResponse(BaseModel):
     phone: Optional[str]
     company: Optional[str]
     contract_value: float
+    plan: Optional[str]
     notes: Optional[str]
     checklist: List[ChecklistItem]
+    weekly_tasks: Optional[List[WeeklyTask]] = []
+    weekly_tasks_reset_at: Optional[str] = None
     user_id: str
     created_at: str
     updated_at: str
@@ -611,13 +629,12 @@ async def create_client(data: ClientCreate, user: dict = Depends(get_current_use
     client_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
     
+    # Novo checklist de onboarding
     checklist = [
-        {"id": str(uuid.uuid4()), "title": "Revisão do perfil", "completed": False},
-        {"id": str(uuid.uuid4()), "title": "SEO descrição", "completed": False},
-        {"id": str(uuid.uuid4()), "title": "Inserção serviços", "completed": False},
-        {"id": str(uuid.uuid4()), "title": "Fotos", "completed": False},
-        {"id": str(uuid.uuid4()), "title": "Primeira postagem", "completed": False},
-        {"id": str(uuid.uuid4()), "title": "Pedido de avaliação", "completed": False},
+        {"id": str(uuid.uuid4()), "title": "Criar NAP", "completed": False},
+        {"id": str(uuid.uuid4()), "title": "Solicitar Acesso ou Criar Perfil", "completed": False},
+        {"id": str(uuid.uuid4()), "title": "Solicitar Fotos e Imagens", "completed": False},
+        {"id": str(uuid.uuid4()), "title": "Editar Perfil", "completed": False},
     ]
     
     client_doc = {
@@ -627,8 +644,11 @@ async def create_client(data: ClientCreate, user: dict = Depends(get_current_use
         "phone": data.phone,
         "company": data.company,
         "contract_value": data.contract_value,
+        "plan": data.plan,
         "notes": data.notes,
         "checklist": checklist,
+        "weekly_tasks": [],
+        "weekly_tasks_reset_at": now,
         "user_id": user["id"],
         "created_at": now,
         "updated_at": now
@@ -650,6 +670,111 @@ async def toggle_checklist_item(client_id: str, item_id: str, user: dict = Depen
     
     await db.clients.update_one({"id": client_id}, {"$set": {"checklist": checklist, "updated_at": datetime.now(timezone.utc).isoformat()}})
     return {"message": "Item atualizado"}
+
+@api_router.put("/clients/{client_id}")
+async def update_client(client_id: str, data: ClientUpdate, user: dict = Depends(get_current_user)):
+    """Editar informações do cliente"""
+    client = await db.clients.find_one({"id": client_id, "user_id": user["id"]}, {"_id": 0})
+    if not client:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.clients.update_one({"id": client_id}, {"$set": update_data})
+    updated = await db.clients.find_one({"id": client_id}, {"_id": 0})
+    return updated
+
+# ============ WEEKLY TASKS (Tarefas da Semana do Cliente) ============
+
+def get_week_start():
+    """Retorna a data de início da semana atual (segunda-feira)"""
+    today = datetime.now(timezone.utc).date()
+    days_since_monday = today.weekday()
+    monday = today - timedelta(days=days_since_monday)
+    return datetime.combine(monday, datetime.min.time(), tzinfo=timezone.utc).isoformat()
+
+@api_router.get("/clients/{client_id}/weekly-tasks")
+async def get_weekly_tasks(client_id: str, user: dict = Depends(get_current_user)):
+    """Obter tarefas da semana do cliente (com reset automático)"""
+    client = await db.clients.find_one({"id": client_id, "user_id": user["id"]}, {"_id": 0})
+    if not client:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    
+    weekly_tasks = client.get("weekly_tasks", [])
+    reset_at = client.get("weekly_tasks_reset_at", "")
+    week_start = get_week_start()
+    
+    # Verificar se precisa resetar (nova semana começou)
+    if reset_at < week_start:
+        # Reset: marcar todas as tarefas como não concluídas
+        for task in weekly_tasks:
+            task["completed"] = False
+        
+        await db.clients.update_one(
+            {"id": client_id},
+            {"$set": {"weekly_tasks": weekly_tasks, "weekly_tasks_reset_at": week_start}}
+        )
+    
+    return {"weekly_tasks": weekly_tasks, "reset_at": week_start}
+
+@api_router.post("/clients/{client_id}/weekly-tasks")
+async def add_weekly_task(client_id: str, title: str = "", user: dict = Depends(get_current_user)):
+    """Adicionar tarefa da semana"""
+    client = await db.clients.find_one({"id": client_id, "user_id": user["id"]}, {"_id": 0})
+    if not client:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    
+    weekly_tasks = client.get("weekly_tasks", [])
+    new_task = {
+        "id": str(uuid.uuid4()),
+        "title": title,
+        "completed": False
+    }
+    weekly_tasks.append(new_task)
+    
+    await db.clients.update_one(
+        {"id": client_id},
+        {"$set": {"weekly_tasks": weekly_tasks, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    return new_task
+
+@api_router.put("/clients/{client_id}/weekly-tasks/{task_id}")
+async def update_weekly_task(client_id: str, task_id: str, title: Optional[str] = None, completed: Optional[bool] = None, user: dict = Depends(get_current_user)):
+    """Atualizar tarefa da semana (editar título ou marcar concluída)"""
+    client = await db.clients.find_one({"id": client_id, "user_id": user["id"]}, {"_id": 0})
+    if not client:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    
+    weekly_tasks = client.get("weekly_tasks", [])
+    for task in weekly_tasks:
+        if task["id"] == task_id:
+            if title is not None:
+                task["title"] = title
+            if completed is not None:
+                task["completed"] = completed
+            break
+    
+    await db.clients.update_one(
+        {"id": client_id},
+        {"$set": {"weekly_tasks": weekly_tasks, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    return {"message": "Tarefa atualizada"}
+
+@api_router.delete("/clients/{client_id}/weekly-tasks/{task_id}")
+async def delete_weekly_task(client_id: str, task_id: str, user: dict = Depends(get_current_user)):
+    """Excluir tarefa da semana"""
+    client = await db.clients.find_one({"id": client_id, "user_id": user["id"]}, {"_id": 0})
+    if not client:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    
+    weekly_tasks = [t for t in client.get("weekly_tasks", []) if t["id"] != task_id]
+    
+    await db.clients.update_one(
+        {"id": client_id},
+        {"$set": {"weekly_tasks": weekly_tasks, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    return {"message": "Tarefa excluída"}
 
 @api_router.delete("/clients/{client_id}")
 async def delete_client(client_id: str, user: dict = Depends(get_current_user)):
