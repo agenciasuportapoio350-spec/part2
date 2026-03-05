@@ -572,16 +572,21 @@ def generate_checklist(items: list) -> list:
     return [{"id": str(uuid.uuid4()), "title": item, "completed": False} for item in items]
 
 @api_router.post("/leads/{lead_id}/convert", response_model=ClientResponse)
-async def convert_lead_to_client(lead_id: str, user: dict = Depends(get_current_user)):
+async def convert_lead_to_client(lead_id: str, plan: str = "unico", user: dict = Depends(get_current_user)):
+    """Converter lead em cliente. Plan deve ser 'unico' ou 'recorrente'."""
     lead = await db.leads.find_one({"id": lead_id, "user_id": user["id"]}, {"_id": 0})
     if not lead:
         raise HTTPException(status_code=404, detail="Lead não encontrado")
+    
+    # Validar plano
+    if plan not in ["unico", "recorrente"]:
+        plan = "unico"
     
     # Create client from lead
     client_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
     
-    # Checklist de onboarding completo (12 etapas)
+    # Checklist de onboarding completo (12 etapas) - igual para todos os planos
     checklist = generate_checklist(DEFAULT_ONBOARDING_CHECKLIST)
     
     client_doc = {
@@ -591,7 +596,7 @@ async def convert_lead_to_client(lead_id: str, user: dict = Depends(get_current_
         "phone": lead.get("phone"),
         "company": lead.get("company"),
         "contract_value": lead.get("contract_value", 0),
-        "plan": "unico",  # Default plan para conversão
+        "plan": plan,
         "notes": lead.get("notes"),
         "checklist": checklist,
         "weekly_tasks": [],
@@ -601,34 +606,6 @@ async def convert_lead_to_client(lead_id: str, user: dict = Depends(get_current_
         "updated_at": now
     }
     await db.clients.insert_one(client_doc)
-    
-    # Create recurring monthly tasks
-    today = datetime.now(timezone.utc)
-    recurring_tasks = [
-        {"title": "Postagem 1 do mês", "task_type": "recorrente"},
-        {"title": "Postagem 2 do mês", "task_type": "recorrente"},
-        {"title": "Postagem 3 do mês", "task_type": "recorrente"},
-        {"title": "Postagem 4 do mês", "task_type": "recorrente"},
-        {"title": "Análise mensal", "task_type": "recorrente"},
-        {"title": "Pedido de avaliação mensal", "task_type": "recorrente"},
-    ]
-    
-    for i, task in enumerate(recurring_tasks):
-        task_doc = {
-            "id": str(uuid.uuid4()),
-            "title": task["title"],
-            "description": f"Tarefa recorrente para {lead['name']}",
-            "task_type": task["task_type"],
-            "due_date": (today + timedelta(days=(i + 1) * 5)).isoformat(),
-            "completed": False,
-            "client_id": client_id,
-            "client_name": lead["name"],
-            "lead_id": None,
-            "lead_name": None,
-            "user_id": user["id"],
-            "created_at": now
-        }
-        await db.tasks.insert_one(task_doc)
     
     # Update lead stage to "fechado"
     await db.leads.update_one({"id": lead_id}, {"$set": {"stage": "fechado", "updated_at": now}})

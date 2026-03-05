@@ -11,8 +11,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../components/ui/dropdown-menu";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
 import { toast } from "sonner";
-import { Plus, MoreVertical, Phone, Mail, Building, Calendar, DollarSign, Bell, Trash2, UserCheck, GripVertical, MessageCircle } from "lucide-react";
+import { Plus, MoreVertical, Phone, Mail, Building, Calendar, DollarSign, Bell, Trash2, UserCheck, GripVertical, MessageCircle, RefreshCw, User } from "lucide-react";
 
 const STAGES_ORDER = ["novo_lead", "contato_feito", "reuniao", "proposta", "fechado", "perdido"];
 
@@ -23,6 +24,8 @@ export default function CRMPage() {
   const [editingLead, setEditingLead] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, lead: null });
   const [lostConfirm, setLostConfirm] = useState({ open: false, lead: null });
+  const [convertModal, setConvertModal] = useState({ open: false, lead: null });
+  const [selectedPlan, setSelectedPlan] = useState("recorrente");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -85,12 +88,22 @@ export default function CRMPage() {
   };
 
   const handleConvert = async (leadId) => {
+    // Abre modal para escolher plano antes de converter
+    const lead = leads.find(l => l.id === leadId);
+    setConvertModal({ open: true, lead });
+    setSelectedPlan("recorrente");
+  };
+
+  const handleConvertConfirm = async () => {
+    if (!convertModal.lead) return;
     try {
-      await api.post(`/leads/${leadId}/convert`);
-      toast.success("Lead convertido em cliente! Checklist e tarefas criados.");
+      await api.post(`/leads/${convertModal.lead.id}/convert?plan=${selectedPlan}`);
+      toast.success(`Lead convertido em cliente ${selectedPlan === "recorrente" ? "Recorrente" : "Único"}!`);
       fetchLeads();
     } catch (error) {
       toast.error("Erro ao converter lead");
+    } finally {
+      setConvertModal({ open: false, lead: null });
     }
   };
 
@@ -99,6 +112,14 @@ export default function CRMPage() {
     if (newStage === "perdido") {
       const lead = leads.find(l => l.id === leadId);
       setLostConfirm({ open: true, lead, newStage });
+      return;
+    }
+    
+    // Se estágio for "fechado", perguntar o plano e converter
+    if (newStage === "fechado") {
+      const lead = leads.find(l => l.id === leadId);
+      setConvertModal({ open: true, lead });
+      setSelectedPlan("recorrente");
       return;
     }
     
@@ -360,6 +381,51 @@ export default function CRMPage() {
         variant="destructive"
         onConfirm={handleLostConfirm}
       />
+
+      {/* Convert Lead - Choose Plan Modal */}
+      <Dialog open={convertModal.open} onOpenChange={(open) => setConvertModal({ ...convertModal, open })}>
+        <DialogContent className="max-w-md" data-testid="convert-plan-modal">
+          <DialogHeader>
+            <DialogTitle>Converter Lead em Cliente</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-slate-600 mb-4">
+              Qual o plano do cliente <strong>{convertModal.lead?.name}</strong>?
+            </p>
+            <RadioGroup value={selectedPlan} onValueChange={setSelectedPlan} className="space-y-3">
+              <div className="flex items-center space-x-3 p-3 rounded-lg border border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 transition-colors cursor-pointer" onClick={() => setSelectedPlan("recorrente")}>
+                <RadioGroupItem value="recorrente" id="recorrente" />
+                <Label htmlFor="recorrente" className="flex items-center gap-2 cursor-pointer flex-1">
+                  <RefreshCw className="w-4 h-4 text-blue-600" />
+                  <div>
+                    <div className="font-medium">Cliente Recorrente</div>
+                    <div className="text-xs text-slate-500">Terá checklist semanal após onboarding</div>
+                  </div>
+                </Label>
+              </div>
+              <div className="flex items-center space-x-3 p-3 rounded-lg border border-slate-200 hover:border-slate-400 hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => setSelectedPlan("unico")}>
+                <RadioGroupItem value="unico" id="unico" />
+                <Label htmlFor="unico" className="flex items-center gap-2 cursor-pointer flex-1">
+                  <User className="w-4 h-4 text-slate-600" />
+                  <div>
+                    <div className="font-medium">Cliente Único</div>
+                    <div className="text-xs text-slate-500">Apenas checklist de onboarding</div>
+                  </div>
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConvertModal({ open: false, lead: null })}>
+              Cancelar
+            </Button>
+            <Button onClick={handleConvertConfirm} data-testid="convert-confirm-btn">
+              <UserCheck className="w-4 h-4 mr-2" />
+              Converter
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
