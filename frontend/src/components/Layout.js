@@ -10,7 +10,8 @@ import {
   Menu,
   X,
   Shield,
-  AlertTriangle
+  AlertTriangle,
+  ClipboardCheck
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { useState } from "react";
@@ -19,6 +20,7 @@ const navItems = [
   { path: "/", icon: LayoutDashboard, label: "Dashboard" },
   { path: "/crm", icon: Users, label: "CRM" },
   { path: "/clients", icon: UserCheck, label: "Clientes" },
+  { path: "/operations", icon: ClipboardCheck, label: "Operação" },
   { path: "/agenda", icon: Calendar, label: "Agenda" },
   { path: "/finance", icon: DollarSign, label: "Financeiro" },
 ];

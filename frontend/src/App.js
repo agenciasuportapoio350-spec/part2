@@ -9,6 +9,7 @@ import ClientsPage from "./pages/ClientsPage";
 import ClientDetailPage from "./pages/ClientDetailPage";
 import AgendaPage from "./pages/AgendaPage";
 import FinancePage from "./pages/FinancePage";
+import OperationsPage from "./pages/OperationsPage";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 import AdminUsersPage from "./pages/admin/AdminUsersPage";
 import AdminUserDetailPage from "./pages/admin/AdminUserDetailPage";
@@ -92,6 +93,7 @@ function AppRoutes() {
         <Route path="crm" element={<CRMPage />} />
         <Route path="clients" element={<ClientsPage />} />
         <Route path="clients/:id" element={<ClientDetailPage />} />
+        <Route path="operations" element={<OperationsPage />} />
         <Route path="agenda" element={<AgendaPage />} />
         <Route path="finance" element={<FinancePage />} />
       </Route>

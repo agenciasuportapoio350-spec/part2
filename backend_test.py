@@ -10,6 +10,7 @@ class RankFlowAPITester:
         self.tests_run = 0
         self.tests_passed = 0
         self.test_results = []
+        self.failed_tests = []
 
     def log_result(self, test_name, success, details=""):
         """Log test result"""
@@ -19,6 +20,8 @@ class RankFlowAPITester:
             "details": details,
             "timestamp": datetime.now().isoformat()
         })
+        if not success:
+            self.failed_tests.append(f"{test_name}: {details}")
 
     def run_test(self, name, method, endpoint, expected_status, data=None, query_params=None):
         """Run a single API test"""
@@ -36,13 +39,13 @@ class RankFlowAPITester:
         
         try:
             if method == 'GET':
-                response = requests.get(url, headers=headers)
+                response = requests.get(url, headers=headers, timeout=10)
             elif method == 'POST':
-                response = requests.post(url, json=data, headers=headers)
+                response = requests.post(url, json=data, headers=headers, timeout=10)
             elif method == 'PUT':
-                response = requests.put(url, json=data, headers=headers)
+                response = requests.put(url, json=data, headers=headers, timeout=10)
             elif method == 'DELETE':
-                response = requests.delete(url, headers=headers)
+                response = requests.delete(url, headers=headers, timeout=10)
 
             success = response.status_code == expected_status
             if success:
@@ -82,187 +85,114 @@ class RankFlowAPITester:
         print(f"❌ Login failed - No token in response")
         return False
 
-    def create_test_lead(self):
-        """Create a test lead for conversion testing"""
-        test_lead_data = {
-            "name": "Test Lead Conversion",
-            "email": "testlead@example.com", 
-            "phone": "(11) 99999-9999",
-            "company": "Test Company",
-            "stage": "proposta",
-            "contract_value": 5000.0,
-            "notes": "Lead para teste de conversão"
-        }
-        
+    def test_operations_stats_api(self):
+        """Test the /operations/stats endpoint"""
         success, response = self.run_test(
-            "Create Test Lead",
-            "POST", 
-            "leads",
-            200,
-            data=test_lead_data
-        )
-        
-        if success and 'id' in response:
-            return response['id']
-        return None
-
-    def test_convert_lead_recorrente(self, lead_id):
-        """Test converting lead to recorrente client"""
-        success, response = self.run_test(
-            "Convert Lead to Recorrente Client",
-            "POST",
-            f"leads/{lead_id}/convert",
-            200,
-            query_params={"plan": "recorrente"}
-        )
-        
-        if success and response.get('plan') == 'recorrente':
-            print(f"✅ Lead converted to recorrente client successfully")
-            # Check checklist has 12 items
-            checklist = response.get('checklist', [])
-            if len(checklist) == 12:
-                print(f"✅ Checklist has correct number of items: {len(checklist)}")
-                return response['id']
-            else:
-                print(f"❌ Incorrect checklist length: {len(checklist)}, expected 12")
-        return None
-
-    def test_convert_lead_unico(self, lead_id):
-        """Test converting lead to unico client"""
-        success, response = self.run_test(
-            "Convert Lead to Unico Client", 
-            "POST",
-            f"leads/{lead_id}/convert",
-            200,
-            query_params={"plan": "unico"}
-        )
-        
-        if success and response.get('plan') == 'unico':
-            print(f"✅ Lead converted to unico client successfully")
-            # Check checklist has 12 items
-            checklist = response.get('checklist', [])
-            if len(checklist) == 12:
-                print(f"✅ Checklist has correct number of items: {len(checklist)}")
-                return response['id']
-            else:
-                print(f"❌ Incorrect checklist length: {len(checklist)}, expected 12")
-        return None
-
-    def test_no_tasks_created_during_conversion(self, before_task_count, after_task_count):
-        """Verify that no tasks were created during lead conversion"""
-        if before_task_count == after_task_count:
-            print(f"✅ No new tasks created during conversion")
-            self.log_result("No Tasks Created During Conversion", True, f"Task count remained {after_task_count}")
-            return True
-        else:
-            print(f"❌ Tasks were created during conversion: {before_task_count} -> {after_task_count}")
-            self.log_result("No Tasks Created During Conversion", False, f"Task count changed: {before_task_count} -> {after_task_count}")
-            return False
-
-    def get_task_count(self):
-        """Get current task count"""
-        success, response = self.run_test(
-            "Get Tasks Count",
+            "Operations Stats API",
             "GET",
-            "tasks",
-            200
-        )
-        if success and isinstance(response, list):
-            return len(response)
-        return 0
-
-    def get_clients_by_plan(self):
-        """Get clients grouped by plan"""
-        success, response = self.run_test(
-            "Get Clients",
-            "GET", 
-            "clients",
+            "operations/stats",
             200
         )
         
-        if success and isinstance(response, list):
-            clients_by_plan = {"unico": [], "recorrente": []}
-            for client in response:
-                plan = client.get('plan', 'unico')
-                if plan in clients_by_plan:
-                    clients_by_plan[plan].append(client)
-            return clients_by_plan
-        return {"unico": [], "recorrente": []}
+        if success:
+            # Validate response structure
+            required_fields = ['atrasados', 'pendentes_semana', 'onboarding_pendente', 'counts']
+            for field in required_fields:
+                if field not in response:
+                    print(f"❌ Missing required field '{field}' in operations/stats response")
+                    self.log_result(f"Operations Stats - {field} field", False, f"Missing field {field}")
+                    return False
+                
+            # Validate counts structure 
+            counts = response.get('counts', {})
+            count_fields = ['atrasados', 'pendentes_semana', 'onboarding_pendente']
+            for field in count_fields:
+                if field not in counts:
+                    print(f"❌ Missing count field '{field}' in response")
+                    self.log_result(f"Operations Stats - {field} count", False, f"Missing count field {field}")
+                    return False
+
+            print(f"   Atrasados: {counts.get('atrasados', 0)}")
+            print(f"   Pendentes Semana: {counts.get('pendentes_semana', 0)}")
+            print(f"   Onboarding Pendente: {counts.get('onboarding_pendente', 0)}")
+            
+            # Validate lists structure
+            for field in ['atrasados', 'pendentes_semana', 'onboarding_pendente']:
+                data_list = response.get(field, [])
+                if isinstance(data_list, list):
+                    print(f"   {field} list: {len(data_list)} items")
+                else:
+                    print(f"❌ {field} is not a list")
+                    self.log_result(f"Operations Stats - {field} list", False, f"{field} is not a list")
+                    return False
+            
+            return True
+        return False
+
+    def test_dashboard_stats_api(self):
+        """Test the /dashboard/stats endpoint"""
+        success, response = self.run_test(
+            "Dashboard Stats API", 
+            "GET",
+            "dashboard/stats",
+            200
+        )
+        
+        if success:
+            print(f"   Dashboard loaded successfully")
+            print(f"   Leads: {response.get('leads_total', 0)}")
+            print(f"   Clients: {response.get('clients_count', 0)}")
+            return True
+        return False
+
+    def test_auth_me(self):
+        """Test auth/me endpoint"""
+        success, response = self.run_test(
+            "Auth Me",
+            "GET",
+            "auth/me",
+            200
+        )
+        
+        if success:
+            print(f"   User: {response.get('name', 'Unknown')} ({response.get('role', 'USER')})")
+            return True
+        return False
 
 def main():
-    """Main test execution"""
-    print("🚀 Starting RankFlow API Tests for Lead Conversion Flow\n")
+    """Main test execution for Operations Panel"""
+    print("🚀 Starting RankFlow Operations Panel API Tests\n")
+    print("=" * 70)
     
     tester = RankFlowAPITester()
     
-    # Login first
-    if not tester.test_login():
-        print("❌ Cannot continue without authentication")
-        return 1
+    # Test sequence focused on operations panel functionality
+    tests = [
+        ("Login Authentication", tester.test_login),
+        ("Auth Check", tester.test_auth_me),
+        ("Dashboard Stats API", tester.test_dashboard_stats_api),
+        ("Operations Stats API", tester.test_operations_stats_api),
+    ]
     
-    print("\n" + "="*60)
-    print("Testing Lead Conversion Functionality")
-    print("="*60)
-    
-    # Get initial task count
-    initial_task_count = tester.get_task_count()
-    print(f"\n📊 Initial task count: {initial_task_count}")
-    
-    # Test 1: Create and convert lead to recorrente
-    print("\n🧪 Test 1: Convert lead to recorrente client")
-    test_lead_1 = tester.create_test_lead()
-    if test_lead_1:
-        recorrente_client_id = tester.test_convert_lead_recorrente(test_lead_1)
-    else:
-        print("❌ Failed to create test lead for recorrente conversion")
-        recorrente_client_id = None
-    
-    # Test 2: Create and convert lead to unico 
-    print("\n🧪 Test 2: Convert lead to unico client")
-    test_lead_2 = tester.create_test_lead()
-    if test_lead_2:
-        unico_client_id = tester.test_convert_lead_unico(test_lead_2)
-    else:
-        print("❌ Failed to create test lead for unico conversion")
-        unico_client_id = None
-    
-    # Test 3: Verify no tasks were created during conversion
-    print("\n🧪 Test 3: Verify no tasks created during conversion")
-    final_task_count = tester.get_task_count()
-    tester.test_no_tasks_created_during_conversion(initial_task_count, final_task_count)
-    
-    # Test 4: Check clients appear in correct plan groups
-    print("\n🧪 Test 4: Verify clients appear in correct plan groups")
-    clients_by_plan = tester.get_clients_by_plan()
-    
-    recorrente_found = any(c['id'] == recorrente_client_id for c in clients_by_plan['recorrente']) if recorrente_client_id else False
-    unico_found = any(c['id'] == unico_client_id for c in clients_by_plan['unico']) if unico_client_id else False
-    
-    if recorrente_found:
-        print(f"✅ Recorrente client found in correct plan group")
-        tester.log_result("Recorrente Client in Correct Group", True)
-    else:
-        print(f"❌ Recorrente client not found in recorrente group")
-        tester.log_result("Recorrente Client in Correct Group", False)
-    
-    if unico_found:
-        print(f"✅ Unico client found in correct plan group") 
-        tester.log_result("Unico Client in Correct Group", True)
-    else:
-        print(f"❌ Unico client not found in unico group")
-        tester.log_result("Unico Client in Correct Group", False)
+    # Run tests
+    for test_name, test_func in tests:
+        if not test_func():
+            if test_name == "Login Authentication":
+                print("\n❌ Critical failure: Cannot continue without authentication")
+                break
     
     # Print final results
-    print("\n" + "="*60)
-    print(f"📊 Final Results: {tester.tests_passed}/{tester.tests_run} tests passed")
-    print("="*60)
+    print("\n" + "="*70)
+    print(f"📊 API Test Results: {tester.tests_passed}/{tester.tests_run} tests passed")
     
-    if tester.tests_passed == tester.tests_run:
-        print("🎉 All tests passed!")
-        return 0
-    else:
-        print(f"❌ {tester.tests_run - tester.tests_passed} tests failed")
-        return 1
+    if tester.failed_tests:
+        print("\n❌ Failed Tests:")
+        for failure in tester.failed_tests:
+            print(f"  - {failure}")
+    
+    print("="*70)
+    
+    return 0 if tester.tests_passed == tester.tests_run else 1
 
 if __name__ == "__main__":
     sys.exit(main())

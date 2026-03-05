@@ -702,6 +702,77 @@ async def update_client(client_id: str, data: ClientUpdate, user: dict = Depends
     updated = await db.clients.find_one({"id": client_id}, {"_id": 0})
     return updated
 
+# ============ OPERATIONS (Painel de Operação) ============
+
+@api_router.get("/operations/stats")
+async def get_operations_stats(user: dict = Depends(get_current_user)):
+    """Estatísticas de operação: atrasados, pendentes, onboarding incompleto"""
+    clients = await db.clients.find({"user_id": user["id"]}, {"_id": 0}).to_list(1000)
+    week_start = get_week_start()
+    
+    # Listas de clientes por categoria
+    atrasados = []  # Recorrentes com checklist semanal atrasado (semana anterior não completo)
+    pendentes_semana = []  # Recorrentes com checklist semanal pendente esta semana
+    onboarding_pendente = []  # Únicos com onboarding incompleto
+    
+    for client in clients:
+        plan = client.get("plan", "unico")
+        checklist = client.get("checklist", [])
+        weekly_tasks = client.get("weekly_tasks", [])
+        reset_at = client.get("weekly_tasks_reset_at", "")
+        
+        # Calcular progresso do onboarding
+        checklist_total = len(checklist)
+        checklist_done = sum(1 for item in checklist if item.get("completed", False))
+        onboarding_completo = checklist_total > 0 and checklist_done == checklist_total
+        
+        if plan == "recorrente" and onboarding_completo and len(weekly_tasks) > 0:
+            # Verificar status do checklist semanal
+            weekly_total = len(weekly_tasks)
+            weekly_done = sum(1 for task in weekly_tasks if task.get("completed", False))
+            weekly_completo = weekly_total > 0 and weekly_done == weekly_total
+            
+            # Se reset_at é anterior a esta semana e não completou = ATRASADO
+            if reset_at < week_start and not weekly_completo:
+                atrasados.append({
+                    "id": client["id"],
+                    "name": client["name"],
+                    "company": client.get("company"),
+                    "phone": client.get("phone"),
+                    "weekly_progress": f"{weekly_done}/{weekly_total}",
+                    "last_reset": reset_at
+                })
+            # Se reset_at é desta semana e não completou = PENDENTE NA SEMANA
+            elif reset_at >= week_start and not weekly_completo:
+                pendentes_semana.append({
+                    "id": client["id"],
+                    "name": client["name"],
+                    "company": client.get("company"),
+                    "phone": client.get("phone"),
+                    "weekly_progress": f"{weekly_done}/{weekly_total}"
+                })
+        
+        elif plan == "unico" and not onboarding_completo:
+            # Cliente único com onboarding incompleto
+            onboarding_pendente.append({
+                "id": client["id"],
+                "name": client["name"],
+                "company": client.get("company"),
+                "phone": client.get("phone"),
+                "checklist_progress": f"{checklist_done}/{checklist_total}"
+            })
+    
+    return {
+        "atrasados": atrasados,
+        "pendentes_semana": pendentes_semana,
+        "onboarding_pendente": onboarding_pendente,
+        "counts": {
+            "atrasados": len(atrasados),
+            "pendentes_semana": len(pendentes_semana),
+            "onboarding_pendente": len(onboarding_pendente)
+        }
+    }
+
 # ============ WEEKLY TASKS (Tarefas da Semana do Cliente) ============
 
 def get_week_start():

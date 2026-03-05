@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../lib/api";
 import { formatCurrency } from "../lib/utils";
 import { Card, CardContent } from "../components/ui/card";
@@ -18,12 +19,16 @@ import {
   AlertCircle,
   Info,
   Settings,
-  CheckCircle2
+  CheckCircle2,
+  Clock,
+  ClipboardList
 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function DashboardPage() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
+  const [opsStats, setOpsStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [goalInput, setGoalInput] = useState("");
@@ -31,15 +36,19 @@ export default function DashboardPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetchStats();
+    fetchData();
   }, []);
 
-  const fetchStats = async () => {
+  const fetchData = async () => {
     try {
-      const response = await api.get("/dashboard/stats");
-      setStats(response.data);
-      setGoalInput(response.data.settings?.monthly_goal || "");
-      setAlertDaysInput(response.data.settings?.leads_alert_days || 7);
+      const [statsRes, opsRes] = await Promise.all([
+        api.get("/dashboard/stats"),
+        api.get("/operations/stats")
+      ]);
+      setStats(statsRes.data);
+      setOpsStats(opsRes.data);
+      setGoalInput(statsRes.data.settings?.monthly_goal || "");
+      setAlertDaysInput(statsRes.data.settings?.leads_alert_days || 7);
     } catch (error) {
       toast.error("Erro ao carregar estatísticas");
     } finally {
@@ -248,6 +257,68 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Operação - Contadores Clicáveis */}
+      <Card className="border-slate-200 shadow-sm" data-testid="operations-card">
+        <CardContent className="p-6">
+          <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+            <ClipboardList className="w-5 h-5 text-slate-600" />
+            Operação
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Atrasados */}
+            <div 
+              className="p-4 rounded-lg border border-red-200 bg-red-50 cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => navigate("/operations?tab=atrasados")}
+              data-testid="ops-atrasados"
+            >
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="w-8 h-8 text-red-600" />
+                <div>
+                  <div className="text-2xl font-bold text-red-600 font-mono">
+                    {opsStats?.counts?.atrasados || 0}
+                  </div>
+                  <div className="text-sm text-red-700">Atrasados</div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Pendentes na Semana */}
+            <div 
+              className="p-4 rounded-lg border border-amber-200 bg-amber-50 cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => navigate("/operations?tab=pendentes")}
+              data-testid="ops-pendentes"
+            >
+              <div className="flex items-center gap-3">
+                <Clock className="w-8 h-8 text-amber-600" />
+                <div>
+                  <div className="text-2xl font-bold text-amber-600 font-mono">
+                    {opsStats?.counts?.pendentes_semana || 0}
+                  </div>
+                  <div className="text-sm text-amber-700">Pendentes na Semana</div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Onboarding Pendente */}
+            <div 
+              className="p-4 rounded-lg border border-slate-200 bg-slate-50 cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => navigate("/operations?tab=onboarding")}
+              data-testid="ops-onboarding"
+            >
+              <div className="flex items-center gap-3">
+                <ClipboardList className="w-8 h-8 text-slate-600" />
+                <div>
+                  <div className="text-2xl font-bold text-slate-600 font-mono">
+                    {opsStats?.counts?.onboarding_pendente || 0}
+                  </div>
+                  <div className="text-sm text-slate-700">Onboarding Pendente</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
