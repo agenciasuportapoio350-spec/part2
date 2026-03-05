@@ -4,7 +4,7 @@
 - **Nome:** RankFlow
 - **Descrição:** Sistema de Gestão para Google Empresas
 - **Stack:** React + Tailwind + Shadcn UI | FastAPI | MongoDB
-- **Versão:** 1.0.0
+- **Versão:** 1.1.0
 - **Última Atualização:** 05/03/2026
 
 ---
@@ -39,18 +39,21 @@ Sistema de gestão para agências de marketing digital que gerenciam perfis de c
 
 ### CRM
 - [x] Pipeline de leads (6 estágios)
-- [x] Conversão automática lead → cliente
+- [x] Conversão lead → cliente com escolha de plano
+- [x] Modal pergunta plano ao fechar lead
 
 ### Clientes
 - [x] Campo "plan": unico | recorrente
 - [x] Separação por plano na interface
-- [x] Checklist de onboarding (12 etapas)
-- [x] Checklist semanal automático
+- [x] Checklist de onboarding (12 etapas) - igual para todos
+- [x] Checklist semanal automático (apenas recorrentes)
+- [x] Tarefas do cliente separadas da Agenda
 
 ### Agenda
 - [x] Tarefas com data
 - [x] Tipos: Onboarding, Recorrente, Follow-up, Outro
 - [x] Vinculação com cliente ou lead
+- [x] Apenas tarefas gerais (não inclui tarefas internas de cliente)
 
 ### Financeiro
 - [x] Pagamentos vinculados a clientes
@@ -58,7 +61,7 @@ Sistema de gestão para agências de marketing digital que gerenciam perfis de c
 - [x] Datas em formato YYYY-MM-DD
 
 ### Dashboard
-- [x] Tarefas do dia
+- [x] Tarefas do dia (apenas da Agenda)
 - [x] Contagem de clientes
 - [x] Alertas (leads parados, inadimplentes)
 
@@ -71,23 +74,21 @@ Sistema de gestão para agências de marketing digital que gerenciam perfis de c
 
 ## What's Been Implemented
 
-### 05/03/2026 - Correções de Auditoria
+### 05/03/2026 - Ajustes CRM/Clientes (v1.1.0)
+1. ✅ Modal de escolha de plano ao converter lead (Recorrente/Único)
+2. ✅ Tarefas do cliente NÃO vão mais para Agenda
+3. ✅ Checklist inicial igual para todos (12 itens)
+
+### 05/03/2026 - Correções de Auditoria (v1.0.0)
 1. ✅ Bug crítico: API de clientes (campo plan faltando)
 2. ✅ Checklist inicial com 12 etapas corretas
 3. ✅ Separação de clientes por plano na UI (2 colunas)
 4. ✅ Checklist semanal automático para recorrentes
 5. ✅ Modais de confirmação (substituindo window.confirm)
 
-### Arquivos Modificados
-- `/app/backend/server.py`
-- `/app/frontend/src/pages/ClientsPage.js`
-- `/app/frontend/src/pages/CRMPage.js`
-- `/app/frontend/src/pages/AgendaPage.js`
-- `/app/frontend/src/pages/FinancePage.js`
-- `/app/frontend/src/components/ConfirmDialog.js` (novo)
-
-### Migrações
-- MongoDB: Adicionado `plan: "unico"` a clientes existentes
+### Arquivos Modificados (v1.1.0)
+- `/app/backend/server.py` - Endpoint convert aceita parâmetro plan, removida criação de tarefas
+- `/app/frontend/src/pages/CRMPage.js` - Modal de escolha de plano com RadioGroup
 
 ---
 
@@ -97,6 +98,8 @@ Sistema de gestão para agências de marketing digital que gerenciam perfis de c
 - [x] Bug API clientes
 - [x] Checklist 12 itens
 - [x] Modais de confirmação
+- [x] Escolha de plano na conversão
+- [x] Separação tarefas cliente vs agenda
 
 ### P1 - Próximas Features
 - [ ] Drag and drop no Kanban
@@ -139,8 +142,8 @@ FastAPI + Motor (Async MongoDB)
 MongoDB Collections:
 ├── users
 ├── leads
-├── clients
-├── tasks
+├── clients (com checklist e weekly_tasks)
+├── tasks (apenas tarefas da Agenda)
 ├── payments
 └── audit_logs
 ```
