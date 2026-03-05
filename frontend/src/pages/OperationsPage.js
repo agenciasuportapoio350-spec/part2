@@ -10,7 +10,7 @@ import { AlertTriangle, Clock, ClipboardList, Phone, Building, ChevronRight, Mes
 
 export default function OperationsPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "atrasados");
@@ -23,6 +23,11 @@ export default function OperationsPage() {
     const tab = searchParams.get("tab");
     if (tab) setActiveTab(tab);
   }, [searchParams]);
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+  };
 
   const fetchOperations = async () => {
     try {
@@ -110,7 +115,7 @@ export default function OperationsPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <Card 
           className={`cursor-pointer transition-all ${activeTab === "atrasados" ? "ring-2 ring-red-500" : "hover:shadow-md"}`}
-          onClick={() => setActiveTab("atrasados")}
+          onClick={() => handleTabChange("atrasados")}
         >
           <CardContent className="p-4 flex items-center gap-4">
             <div className="p-3 rounded-full bg-red-100">
@@ -125,7 +130,7 @@ export default function OperationsPage() {
 
         <Card 
           className={`cursor-pointer transition-all ${activeTab === "pendentes" ? "ring-2 ring-amber-500" : "hover:shadow-md"}`}
-          onClick={() => setActiveTab("pendentes")}
+          onClick={() => handleTabChange("pendentes")}
         >
           <CardContent className="p-4 flex items-center gap-4">
             <div className="p-3 rounded-full bg-amber-100">
@@ -140,7 +145,7 @@ export default function OperationsPage() {
 
         <Card 
           className={`cursor-pointer transition-all ${activeTab === "onboarding" ? "ring-2 ring-slate-500" : "hover:shadow-md"}`}
-          onClick={() => setActiveTab("onboarding")}
+          onClick={() => handleTabChange("onboarding")}
         >
           <CardContent className="p-4 flex items-center gap-4">
             <div className="p-3 rounded-full bg-slate-100">
@@ -155,7 +160,7 @@ export default function OperationsPage() {
       </div>
 
       {/* Tabs with Lists */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="mb-4">
           <TabsTrigger value="atrasados" className="gap-2">
             <AlertTriangle className="w-4 h-4" />

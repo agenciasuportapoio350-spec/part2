@@ -74,6 +74,12 @@ Sistema de gestão para agências de marketing digital que gerenciam perfis de c
 
 ## What's Been Implemented
 
+### 05/03/2026 - Painel de Operação (v1.2.0)
+1. ✅ Nova página /operations com listas filtradas por prioridade
+2. ✅ Dashboard com contadores clicáveis (Atrasados/Pendentes/Onboarding)
+3. ✅ API /operations/stats para estatísticas operacionais
+4. ✅ Sidebar com link para Operação
+
 ### 05/03/2026 - Ajustes CRM/Clientes (v1.1.0)
 1. ✅ Modal de escolha de plano ao converter lead (Recorrente/Único)
 2. ✅ Tarefas do cliente NÃO vão mais para Agenda
@@ -86,9 +92,12 @@ Sistema de gestão para agências de marketing digital que gerenciam perfis de c
 4. ✅ Checklist semanal automático para recorrentes
 5. ✅ Modais de confirmação (substituindo window.confirm)
 
-### Arquivos Modificados (v1.1.0)
-- `/app/backend/server.py` - Endpoint convert aceita parâmetro plan, removida criação de tarefas
-- `/app/frontend/src/pages/CRMPage.js` - Modal de escolha de plano com RadioGroup
+### Arquivos Modificados (v1.2.0)
+- `/app/backend/server.py` - Endpoint /operations/stats
+- `/app/frontend/src/pages/OperationsPage.js` (novo)
+- `/app/frontend/src/pages/DashboardPage.js` - Contadores de operação
+- `/app/frontend/src/components/Layout.js` - Link na sidebar
+- `/app/frontend/src/App.js` - Rota /operations
 
 ---
 
