@@ -542,6 +542,35 @@ async def delete_lead(lead_id: str, user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=404, detail="Lead não encontrado")
     return {"message": "Lead excluído com sucesso"}
 
+# Checklist padrão de onboarding (12 etapas)
+DEFAULT_ONBOARDING_CHECKLIST = [
+    "Criar perfil / Reivindicar acesso",
+    "Revisão do Perfil / Editar",
+    "Coletar fotos / Imagens",
+    "Primeira postagem",
+    "Pedir avaliação",
+    "Segunda postagem",
+    "Responder avaliação",
+    "Terceira postagem",
+    "Quarta postagem",
+    "Responder avaliação",
+    "Revisar perfil",
+    "Enviar acesso ao cliente",
+]
+
+# Checklist semanal padrão (5 itens)
+DEFAULT_WEEKLY_CHECKLIST = [
+    "Postagem 1 da semana",
+    "Postagem 2 da semana",
+    "Postagem 3 da semana",
+    "Pedido de avaliação",
+    "Resposta de avaliação",
+]
+
+def generate_checklist(items: list) -> list:
+    """Gera checklist com IDs únicos"""
+    return [{"id": str(uuid.uuid4()), "title": item, "completed": False} for item in items]
+
 @api_router.post("/leads/{lead_id}/convert", response_model=ClientResponse)
 async def convert_lead_to_client(lead_id: str, user: dict = Depends(get_current_user)):
     lead = await db.leads.find_one({"id": lead_id, "user_id": user["id"]}, {"_id": 0})
@@ -552,15 +581,8 @@ async def convert_lead_to_client(lead_id: str, user: dict = Depends(get_current_
     client_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
     
-    # Default onboarding checklist
-    checklist = [
-        {"id": str(uuid.uuid4()), "title": "Revisão do perfil", "completed": False},
-        {"id": str(uuid.uuid4()), "title": "SEO descrição", "completed": False},
-        {"id": str(uuid.uuid4()), "title": "Inserção serviços", "completed": False},
-        {"id": str(uuid.uuid4()), "title": "Fotos", "completed": False},
-        {"id": str(uuid.uuid4()), "title": "Primeira postagem", "completed": False},
-        {"id": str(uuid.uuid4()), "title": "Pedido de avaliação", "completed": False},
-    ]
+    # Checklist de onboarding completo (12 etapas)
+    checklist = generate_checklist(DEFAULT_ONBOARDING_CHECKLIST)
     
     client_doc = {
         "id": client_id,
@@ -569,8 +591,11 @@ async def convert_lead_to_client(lead_id: str, user: dict = Depends(get_current_
         "phone": lead.get("phone"),
         "company": lead.get("company"),
         "contract_value": lead.get("contract_value", 0),
+        "plan": "unico",  # Default plan para conversão
         "notes": lead.get("notes"),
         "checklist": checklist,
+        "weekly_tasks": [],
+        "weekly_tasks_reset_at": now,
         "user_id": user["id"],
         "created_at": now,
         "updated_at": now
@@ -629,13 +654,8 @@ async def create_client(data: ClientCreate, user: dict = Depends(get_current_use
     client_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
     
-    # Novo checklist de onboarding
-    checklist = [
-        {"id": str(uuid.uuid4()), "title": "Criar NAP", "completed": False},
-        {"id": str(uuid.uuid4()), "title": "Solicitar Acesso ou Criar Perfil", "completed": False},
-        {"id": str(uuid.uuid4()), "title": "Solicitar Fotos e Imagens", "completed": False},
-        {"id": str(uuid.uuid4()), "title": "Editar Perfil", "completed": False},
-    ]
+    # Checklist de onboarding completo (12 etapas)
+    checklist = generate_checklist(DEFAULT_ONBOARDING_CHECKLIST)
     
     client_doc = {
         "id": client_id,
@@ -644,7 +664,7 @@ async def create_client(data: ClientCreate, user: dict = Depends(get_current_use
         "phone": data.phone,
         "company": data.company,
         "contract_value": data.contract_value,
-        "plan": data.plan,
+        "plan": data.plan or "unico",
         "notes": data.notes,
         "checklist": checklist,
         "weekly_tasks": [],
@@ -668,8 +688,28 @@ async def toggle_checklist_item(client_id: str, item_id: str, user: dict = Depen
             item["completed"] = not item["completed"]
             break
     
-    await db.clients.update_one({"id": client_id}, {"$set": {"checklist": checklist, "updated_at": datetime.now(timezone.utc).isoformat()}})
-    return {"message": "Item atualizado"}
+    now = datetime.now(timezone.utc).isoformat()
+    update_data = {"checklist": checklist, "updated_at": now}
+    
+    # Verificar se todos os 12 itens do checklist foram completados
+    # e se o cliente é recorrente - ativar checklist semanal automaticamente
+    all_completed = all(item.get("completed", False) for item in checklist)
+    is_recorrente = client.get("plan") == "recorrente"
+    weekly_tasks = client.get("weekly_tasks", [])
+    
+    if all_completed and is_recorrente and len(weekly_tasks) == 0:
+        # Ativar checklist semanal com os 5 itens padrão
+        update_data["weekly_tasks"] = generate_checklist(DEFAULT_WEEKLY_CHECKLIST)
+        update_data["weekly_tasks_reset_at"] = now
+    
+    await db.clients.update_one({"id": client_id}, {"$set": update_data})
+    
+    response = {"message": "Item atualizado"}
+    if all_completed and is_recorrente and len(weekly_tasks) == 0:
+        response["weekly_tasks_activated"] = True
+        response["message"] = "Checklist completo! Tarefas semanais ativadas automaticamente."
+    
+    return response
 
 @api_router.put("/clients/{client_id}")
 async def update_client(client_id: str, data: ClientUpdate, user: dict = Depends(get_current_user)):

@@ -11,6 +11,7 @@ import { Checkbox } from "../components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import { toast } from "sonner";
 import { Plus, Calendar, Clock, AlertTriangle, CheckCircle2, Trash2 } from "lucide-react";
 
@@ -21,6 +22,8 @@ export default function AgendaPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("today");
   const [modalOpen, setModalOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, task: null });
+  const [completeConfirm, setCompleteConfirm] = useState({ open: false, task: null });
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -69,23 +72,51 @@ export default function AgendaPage() {
   };
 
   const handleToggleComplete = async (taskId, currentStatus) => {
+    // Se tarefa não está concluída, mostrar confirmação antes de concluir
+    if (!currentStatus) {
+      const task = tasks.find(t => t.id === taskId);
+      setCompleteConfirm({ open: true, task });
+      return;
+    }
+    
+    // Se já está concluída, apenas desconcluir sem confirmação
     try {
-      await api.put(`/tasks/${taskId}`, { completed: !currentStatus });
+      await api.put(`/tasks/${taskId}`, { completed: false });
       fetchData();
-      toast.success(currentStatus ? "Tarefa reaberta" : "Tarefa concluída!");
+      toast.success("Tarefa reaberta");
     } catch (error) {
       toast.error("Erro ao atualizar tarefa");
     }
   };
 
-  const handleDelete = async (taskId) => {
-    if (!window.confirm("Tem certeza que deseja excluir esta tarefa?")) return;
+  const handleCompleteConfirm = async () => {
+    if (!completeConfirm.task) return;
     try {
-      await api.delete(`/tasks/${taskId}`);
+      await api.put(`/tasks/${completeConfirm.task.id}`, { completed: true });
+      toast.success("Tarefa concluída!");
+      fetchData();
+    } catch (error) {
+      toast.error("Erro ao concluir tarefa");
+    } finally {
+      setCompleteConfirm({ open: false, task: null });
+    }
+  };
+
+  const handleDelete = async (taskId) => {
+    const task = tasks.find(t => t.id === taskId);
+    setDeleteConfirm({ open: true, task });
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirm.task) return;
+    try {
+      await api.delete(`/tasks/${deleteConfirm.task.id}`);
       toast.success("Tarefa excluída!");
       fetchData();
     } catch (error) {
       toast.error("Erro ao excluir tarefa");
+    } finally {
+      setDeleteConfirm({ open: false, task: null });
     }
   };
 
@@ -336,6 +367,27 @@ export default function AgendaPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Task Confirmation */}
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        onOpenChange={(open) => setDeleteConfirm({ ...deleteConfirm, open })}
+        title="Excluir Tarefa"
+        description={`Tem certeza que deseja excluir "${deleteConfirm.task?.title}"? Esta ação não pode ser desfeita.`}
+        confirmText="Excluir"
+        variant="destructive"
+        onConfirm={handleDeleteConfirm}
+      />
+
+      {/* Complete Task Confirmation */}
+      <ConfirmDialog
+        open={completeConfirm.open}
+        onOpenChange={(open) => setCompleteConfirm({ ...completeConfirm, open })}
+        title="Concluir Tarefa"
+        description={`Deseja marcar "${completeConfirm.task?.title}" como concluída?`}
+        confirmText="Concluir"
+        onConfirm={handleCompleteConfirm}
+      />
     </div>
   );
 }

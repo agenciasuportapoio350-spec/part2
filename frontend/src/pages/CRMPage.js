@@ -10,6 +10,7 @@ import { Badge } from "../components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../components/ui/dropdown-menu";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import { toast } from "sonner";
 import { Plus, MoreVertical, Phone, Mail, Building, Calendar, DollarSign, Bell, Trash2, UserCheck, GripVertical, MessageCircle } from "lucide-react";
 
@@ -20,6 +21,8 @@ export default function CRMPage() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingLead, setEditingLead] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, lead: null });
+  const [lostConfirm, setLostConfirm] = useState({ open: false, lead: null });
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -65,13 +68,19 @@ export default function CRMPage() {
   };
 
   const handleDelete = async (leadId) => {
-    if (!window.confirm("Tem certeza que deseja excluir este lead?")) return;
+    setDeleteConfirm({ open: true, lead: leads.find(l => l.id === leadId) });
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirm.lead) return;
     try {
-      await api.delete(`/leads/${leadId}`);
+      await api.delete(`/leads/${deleteConfirm.lead.id}`);
       toast.success("Lead excluído com sucesso!");
       fetchLeads();
     } catch (error) {
       toast.error("Erro ao excluir lead");
+    } finally {
+      setDeleteConfirm({ open: false, lead: null });
     }
   };
 
@@ -86,12 +95,32 @@ export default function CRMPage() {
   };
 
   const handleStageChange = async (leadId, newStage) => {
+    // Se estágio for "perdido", mostrar confirmação
+    if (newStage === "perdido") {
+      const lead = leads.find(l => l.id === leadId);
+      setLostConfirm({ open: true, lead, newStage });
+      return;
+    }
+    
     try {
       await api.put(`/leads/${leadId}`, { stage: newStage });
       fetchLeads();
       toast.success("Estágio atualizado!");
     } catch (error) {
       toast.error("Erro ao atualizar estágio");
+    }
+  };
+
+  const handleLostConfirm = async () => {
+    if (!lostConfirm.lead) return;
+    try {
+      await api.put(`/leads/${lostConfirm.lead.id}`, { stage: "perdido" });
+      fetchLeads();
+      toast.success("Lead marcado como perdido");
+    } catch (error) {
+      toast.error("Erro ao atualizar estágio");
+    } finally {
+      setLostConfirm({ open: false, lead: null });
     }
   };
 
@@ -309,6 +338,28 @@ export default function CRMPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Lead Confirmation */}
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        onOpenChange={(open) => setDeleteConfirm({ ...deleteConfirm, open })}
+        title="Excluir Lead"
+        description={`Tem certeza que deseja excluir ${deleteConfirm.lead?.name}? Esta ação não pode ser desfeita.`}
+        confirmText="Excluir"
+        variant="destructive"
+        onConfirm={handleDeleteConfirm}
+      />
+
+      {/* Mark as Lost Confirmation */}
+      <ConfirmDialog
+        open={lostConfirm.open}
+        onOpenChange={(open) => setLostConfirm({ ...lostConfirm, open })}
+        title="Marcar como Perdido"
+        description={`Tem certeza que deseja marcar ${lostConfirm.lead?.name} como perdido? O lead será movido para a coluna "Perdido".`}
+        confirmText="Confirmar"
+        variant="destructive"
+        onConfirm={handleLostConfirm}
+      />
     </div>
   );
 }

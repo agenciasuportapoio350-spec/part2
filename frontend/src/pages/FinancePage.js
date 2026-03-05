@@ -9,6 +9,7 @@ import { Badge } from "../components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import { toast } from "sonner";
 import { Plus, DollarSign, TrendingUp, Clock, Check, X, Trash2, RefreshCw, AlertCircle, CalendarClock } from "lucide-react";
 
@@ -18,6 +19,7 @@ export default function FinancePage() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState("all");
+  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, payment: null });
   const [formData, setFormData] = useState({
     client_id: "",
     description: "",
@@ -73,13 +75,20 @@ export default function FinancePage() {
   };
 
   const handleDelete = async (paymentId) => {
-    if (!window.confirm("Tem certeza que deseja excluir este pagamento?")) return;
+    const payment = payments.find(p => p.id === paymentId);
+    setDeleteConfirm({ open: true, payment });
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirm.payment) return;
     try {
-      await api.delete(`/payments/${paymentId}`);
+      await api.delete(`/payments/${deleteConfirm.payment.id}`);
       toast.success("Pagamento excluído!");
       fetchData();
     } catch (error) {
       toast.error("Erro ao excluir pagamento");
+    } finally {
+      setDeleteConfirm({ open: false, payment: null });
     }
   };
 
@@ -512,6 +521,17 @@ export default function FinancePage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Payment Confirmation */}
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        onOpenChange={(open) => setDeleteConfirm({ ...deleteConfirm, open })}
+        title="Excluir Pagamento"
+        description={`Tem certeza que deseja excluir o pagamento de ${formatCurrency(deleteConfirm.payment?.amount || 0)} para ${deleteConfirm.payment?.client_name}? Esta ação não pode ser desfeita.`}
+        confirmText="Excluir"
+        variant="destructive"
+        onConfirm={handleDeleteConfirm}
+      />
     </div>
   );
 }
