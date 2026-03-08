@@ -21,7 +21,10 @@ import {
   Settings,
   CheckCircle2,
   Clock,
-  ClipboardList
+  ClipboardList,
+  RefreshCw,
+  User,
+  CreditCard
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -29,6 +32,7 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [opsStats, setOpsStats] = useState(null);
+  const [operationalStats, setOperationalStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [goalInput, setGoalInput] = useState("");
@@ -41,12 +45,14 @@ export default function DashboardPage() {
 
   const fetchData = async () => {
     try {
-      const [statsRes, opsRes] = await Promise.all([
+      const [statsRes, opsRes, opStatsRes] = await Promise.all([
         api.get("/dashboard/stats"),
-        api.get("/operations/stats")
+        api.get("/operations/stats"),
+        api.get("/dashboard/operational-stats")
       ]);
       setStats(statsRes.data);
       setOpsStats(opsRes.data);
+      setOperationalStats(opStatsRes.data);
       setGoalInput(statsRes.data.settings?.monthly_goal || "");
       setAlertDaysInput(statsRes.data.settings?.leads_alert_days || 7);
     } catch (error) {
@@ -263,56 +269,73 @@ export default function DashboardPage() {
         <CardContent className="p-6">
           <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
             <ClipboardList className="w-5 h-5 text-slate-600" />
-            Operação
+            Indicadores Operacionais
           </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {/* Atrasados */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {/* Clientes Recorrentes */}
+            <div 
+              className="p-4 rounded-lg border border-blue-200 bg-blue-50 cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => navigate("/clients")}
+              data-testid="ops-recorrentes"
+            >
+              <div className="flex items-center gap-3">
+                <RefreshCw className="w-7 h-7 text-blue-600" />
+                <div>
+                  <div className="text-2xl font-bold text-blue-600 font-mono">
+                    {operationalStats?.clientes_recorrentes || 0}
+                  </div>
+                  <div className="text-xs text-blue-700">Recorrentes</div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Clientes Únicos */}
+            <div 
+              className="p-4 rounded-lg border border-slate-200 bg-slate-50 cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => navigate("/clients")}
+              data-testid="ops-unicos"
+            >
+              <div className="flex items-center gap-3">
+                <User className="w-7 h-7 text-slate-600" />
+                <div>
+                  <div className="text-2xl font-bold text-slate-600 font-mono">
+                    {operationalStats?.clientes_unicos || 0}
+                  </div>
+                  <div className="text-xs text-slate-700">Únicos</div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Pagamentos Pendentes */}
+            <div 
+              className="p-4 rounded-lg border border-amber-200 bg-amber-50 cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => navigate("/finance")}
+              data-testid="ops-pagamentos"
+            >
+              <div className="flex items-center gap-3">
+                <CreditCard className="w-7 h-7 text-amber-600" />
+                <div>
+                  <div className="text-2xl font-bold text-amber-600 font-mono">
+                    {operationalStats?.pagamentos_pendentes || 0}
+                  </div>
+                  <div className="text-xs text-amber-700">Pag. Pendentes</div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Checklists Atrasados */}
             <div 
               className="p-4 rounded-lg border border-red-200 bg-red-50 cursor-pointer hover:shadow-md transition-shadow"
               onClick={() => navigate("/operations?tab=atrasados")}
               data-testid="ops-atrasados"
             >
               <div className="flex items-center gap-3">
-                <AlertTriangle className="w-8 h-8 text-red-600" />
+                <AlertTriangle className="w-7 h-7 text-red-600" />
                 <div>
                   <div className="text-2xl font-bold text-red-600 font-mono">
-                    {opsStats?.counts?.atrasados || 0}
+                    {operationalStats?.checklists_atrasados || 0}
                   </div>
-                  <div className="text-sm text-red-700">Atrasados</div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Pendentes na Semana */}
-            <div 
-              className="p-4 rounded-lg border border-amber-200 bg-amber-50 cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => navigate("/operations?tab=pendentes")}
-              data-testid="ops-pendentes"
-            >
-              <div className="flex items-center gap-3">
-                <Clock className="w-8 h-8 text-amber-600" />
-                <div>
-                  <div className="text-2xl font-bold text-amber-600 font-mono">
-                    {opsStats?.counts?.pendentes_semana || 0}
-                  </div>
-                  <div className="text-sm text-amber-700">Pendentes na Semana</div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Onboarding Pendente */}
-            <div 
-              className="p-4 rounded-lg border border-slate-200 bg-slate-50 cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => navigate("/operations?tab=onboarding")}
-              data-testid="ops-onboarding"
-            >
-              <div className="flex items-center gap-3">
-                <ClipboardList className="w-8 h-8 text-slate-600" />
-                <div>
-                  <div className="text-2xl font-bold text-slate-600 font-mono">
-                    {opsStats?.counts?.onboarding_pendente || 0}
-                  </div>
-                  <div className="text-sm text-slate-700">Onboarding Pendente</div>
+                  <div className="text-xs text-red-700">Atrasados</div>
                 </div>
               </div>
             </div>

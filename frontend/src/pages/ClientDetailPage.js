@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../lib/api";
 import { formatCurrency, formatDate, TASK_TYPES } from "../lib/utils";
 import { Button } from "../components/ui/button";
@@ -11,23 +11,33 @@ import { Checkbox } from "../components/ui/checkbox";
 import { Badge } from "../components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { CurrencyInput } from "../components/CurrencyInput";
 import { toast } from "sonner";
 import { 
   ArrowLeft, Building, Phone, Mail, DollarSign, Calendar, CheckCircle2, Circle, 
-  Loader2, Edit, Plus, Trash2, RefreshCw, User, MessageCircle, ListTodo 
+  Loader2, Edit, Plus, Trash2, RefreshCw, User, MessageCircle, ListTodo, CreditCard, ExternalLink 
 } from "lucide-react";
 
 export default function ClientDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [client, setClient] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [weeklyTasks, setWeeklyTasks] = useState([]);
+  const [charges, setCharges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [chargeModalOpen, setChargeModalOpen] = useState(false);
   const [newWeeklyTask, setNewWeeklyTask] = useState("");
   const [editingTaskId, setEditingTaskId] = useState(null);
   const [editingTaskTitle, setEditingTaskTitle] = useState("");
+  const [chargeForm, setChargeForm] = useState({
+    amount: 0,
+    description: "",
+    due_date: new Date().toISOString().split("T")[0],
+  });
+  const [creatingCharge, setCreatingCharge] = useState(false);
   const [editForm, setEditForm] = useState({
     name: "",
     email: "",
@@ -42,7 +52,18 @@ export default function ClientDetailPage() {
     fetchClient();
     fetchTasks();
     fetchWeeklyTasks();
-  }, [id]);
+    fetchCharges();
+    
+    // Verificar se retornou do pagamento
+    const payment = searchParams.get("payment");
+    const sessionId = searchParams.get("session_id");
+    
+    if (payment === "success" && sessionId) {
+      pollPaymentStatus(sessionId);
+    } else if (payment === "cancelled") {
+      toast.info("Pagamento cancelado");
+    }
+  }, [id, searchParams]);
 
   const fetchClient = async () => {
     try {
@@ -82,6 +103,93 @@ export default function ClientDetailPage() {
     } catch (error) {
       console.error("Erro ao carregar tarefas da semana", error);
     }
+  };
+
+  const fetchCharges = async () => {
+    try {
+      const response = await api.get(`/charges/client/${id}`);
+      setCharges(response.data || []);
+    } catch (error) {
+      console.error("Erro ao carregar cobranças", error);
+    }
+  };
+
+  const pollPaymentStatus = async (sessionId, attempts = 0) => {
+    const maxAttempts = 5;
+    const pollInterval = 2000;
+
+    if (attempts >= maxAttempts) {
+      toast.info("Verifique o email para confirmação do pagamento");
+      return;
+    }
+
+    try {
+      const response = await api.get(`/charges/status/${sessionId}`);
+      
+      if (response.data.payment_status === "paid") {
+        toast.success("Pagamento confirmado!");
+        fetchCharges();
+        return;
+      } else if (response.data.status === "cancelado") {
+        toast.error("Sessão de pagamento expirada");
+        fetchCharges();
+        return;
+      }
+
+      setTimeout(() => pollPaymentStatus(sessionId, attempts + 1), pollInterval);
+    } catch (error) {
+      console.error("Erro ao verificar status:", error);
+    }
+  };
+
+  const handleCreateCharge = async (e) => {
+    e.preventDefault();
+    if (!chargeForm.amount || chargeForm.amount <= 0) {
+      toast.error("Informe um valor válido");
+      return;
+    }
+    if (!chargeForm.description.trim()) {
+      toast.error("Informe uma descrição");
+      return;
+    }
+
+    setCreatingCharge(true);
+    try {
+      const response = await api.post("/charges/create", {
+        client_id: id,
+        amount: parseFloat(chargeForm.amount),
+        description: chargeForm.description,
+        due_date: chargeForm.due_date,
+      });
+      
+      toast.success("Cobrança criada com sucesso!");
+      fetchCharges();
+      setChargeModalOpen(false);
+      setChargeForm({ amount: 0, description: "", due_date: new Date().toISOString().split("T")[0] });
+      
+      // Abrir link de pagamento em nova aba
+      if (response.data.payment_link) {
+        window.open(response.data.payment_link, "_blank");
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erro ao criar cobrança");
+    } finally {
+      setCreatingCharge(false);
+    }
+  };
+
+  const getChargeStatusBadge = (status) => {
+    const styles = {
+      pendente: "bg-amber-100 text-amber-800 border-amber-200",
+      pago: "bg-emerald-100 text-emerald-800 border-emerald-200",
+      cancelado: "bg-red-100 text-red-800 border-red-200",
+    };
+    const labels = { pendente: "Pendente", pago: "Pago", cancelado: "Cancelado" };
+    return (
+      <Badge variant="outline" className={styles[status] || styles.pendente}>
+        {labels[status] || status}
+      </Badge>
+    );
   };
 
   const toggleChecklistItem = async (itemId) => {
@@ -477,6 +585,67 @@ export default function ClientDetailPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* 5️⃣ Cobranças Stripe */}
+        <Card className="lg:col-span-3" data-testid="charges-card">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <CreditCard className="w-5 h-5" />
+                Cobranças
+              </CardTitle>
+              <Button 
+                size="sm" 
+                onClick={() => setChargeModalOpen(true)}
+                data-testid="create-charge-btn"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Criar Cobrança
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {charges.length === 0 ? (
+              <div className="text-center py-8 text-slate-400">
+                <CreditCard className="w-12 h-12 mx-auto mb-2 opacity-30" />
+                <p>Nenhuma cobrança criada</p>
+                <p className="text-sm mt-1">Crie uma cobrança para gerar link de pagamento</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {charges.map((charge) => (
+                  <div
+                    key={charge.id}
+                    className="flex items-center gap-4 p-4 rounded-lg border border-slate-200 bg-white"
+                    data-testid={`charge-item-${charge.id}`}
+                  >
+                    <div className="flex-1">
+                      <p className="font-medium text-slate-700">{charge.description}</p>
+                      <p className="text-sm text-slate-500 mt-0.5">
+                        Vencimento: {formatDate(charge.due_date)}
+                      </p>
+                    </div>
+                    <div className="text-lg font-mono font-semibold text-slate-700">
+                      {formatCurrency(charge.amount)}
+                    </div>
+                    {getChargeStatusBadge(charge.status)}
+                    {charge.payment_link && charge.status === "pendente" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => window.open(charge.payment_link, "_blank")}
+                        data-testid={`open-payment-link-${charge.id}`}
+                      >
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        Abrir Link
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Edit Modal */}
@@ -552,6 +721,64 @@ export default function ClientDetailPage() {
               </Button>
               <Button type="submit" data-testid="save-edit-btn">
                 Salvar Alterações
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Charge Modal */}
+      <Dialog open={chargeModalOpen} onOpenChange={setChargeModalOpen}>
+        <DialogContent className="max-w-md" data-testid="create-charge-modal">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CreditCard className="w-5 h-5" />
+              Criar Cobrança
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCreateCharge} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Valor *</Label>
+              <CurrencyInput
+                value={chargeForm.amount}
+                onChange={(value) => setChargeForm({ ...chargeForm, amount: value })}
+                data-testid="charge-amount-input"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Descrição *</Label>
+              <Input
+                value={chargeForm.description}
+                onChange={(e) => setChargeForm({ ...chargeForm, description: e.target.value })}
+                placeholder="Ex: Mensalidade Março/2026"
+                data-testid="charge-description-input"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Data de Vencimento</Label>
+              <Input
+                type="date"
+                value={chargeForm.due_date}
+                onChange={(e) => setChargeForm({ ...chargeForm, due_date: e.target.value })}
+                data-testid="charge-due-date-input"
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setChargeModalOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={creatingCharge} data-testid="submit-charge-btn">
+                {creatingCharge ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Criando...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="w-4 h-4 mr-2" />
+                    Criar e Abrir Link
+                  </>
+                )}
               </Button>
             </DialogFooter>
           </form>

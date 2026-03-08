@@ -74,6 +74,12 @@ Sistema de gestão para agências de marketing digital que gerenciam perfis de c
 
 ## What's Been Implemented
 
+### 08/03/2026 - Cobrança Stripe + Dashboard Operacional (v1.4.0)
+1. ✅ Cobrança com Stripe Checkout (link de pagamento)
+2. ✅ Dashboard com 4 indicadores operacionais (Recorrentes/Únicos/Pag.Pendentes/Atrasados)
+3. ✅ Seção Cobranças no perfil do cliente
+4. ✅ Collection payment_transactions para armazenar cobranças
+
 ### 08/03/2026 - Correções de Testes (v1.3.0)
 1. ✅ Agenda: Campo "Tipo" simplificado (Recorrente/Único)
 2. ✅ Máscara de moeda BRL em todos os campos de valor

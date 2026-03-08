@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, status
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -12,6 +12,7 @@ import uuid
 from datetime import datetime, timezone, timedelta
 import jwt
 import bcrypt
+from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -25,6 +26,9 @@ db = client[os.environ['DB_NAME']]
 JWT_SECRET = os.environ.get('JWT_SECRET', 'rankflow-secret-key-2024')
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 24
+
+# Stripe Config
+STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY', '')
 
 # Security
 security = HTTPBearer()
@@ -1662,6 +1666,219 @@ async def admin_delete_user(user_id: str, admin: dict = Depends(get_super_admin)
     await create_audit_log(admin, "delete_user", user_id, user["email"], {"name": user["name"]})
     
     return {"message": "Usuário e dados excluídos com sucesso"}
+
+# ============ STRIPE PAYMENT / COBRANÇA ============
+
+class CreateChargeRequest(BaseModel):
+    client_id: str
+    amount: float
+    description: str
+    due_date: str
+
+class ChargeResponse(BaseModel):
+    id: str
+    client_id: str
+    client_name: str
+    amount: float
+    description: str
+    due_date: str
+    status: str
+    payment_link: Optional[str]
+    session_id: Optional[str]
+    created_at: str
+
+@api_router.post("/charges/create")
+async def create_charge(request: Request, data: CreateChargeRequest, user: dict = Depends(get_current_user)):
+    """Cria uma cobrança com link de pagamento Stripe"""
+    # Verificar se cliente existe
+    client_doc = await db.clients.find_one({"id": data.client_id, "user_id": user["id"]}, {"_id": 0})
+    if not client_doc:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    
+    # Obter URL base do frontend
+    origin = request.headers.get("origin", request.headers.get("referer", ""))
+    if not origin:
+        origin = str(request.base_url).rstrip("/")
+    
+    # URLs de sucesso e cancelamento
+    success_url = f"{origin}/clients/{data.client_id}?payment=success&session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{origin}/clients/{data.client_id}?payment=cancelled"
+    
+    # Criar checkout session no Stripe
+    try:
+        webhook_url = f"{str(request.base_url).rstrip('/')}/api/webhook/stripe"
+        stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+        
+        checkout_request = CheckoutSessionRequest(
+            amount=float(data.amount),
+            currency="brl",
+            success_url=success_url,
+            cancel_url=cancel_url,
+            metadata={
+                "client_id": data.client_id,
+                "client_name": client_doc["name"],
+                "description": data.description,
+                "user_id": user["id"]
+            }
+        )
+        
+        session: CheckoutSessionResponse = await stripe_checkout.create_checkout_session(checkout_request)
+        payment_link = session.url
+        session_id = session.session_id
+    except Exception as e:
+        logger.error(f"Erro ao criar checkout Stripe: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao criar link de pagamento: {str(e)}")
+    
+    # Criar registro na collection payment_transactions
+    charge_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    
+    charge_doc = {
+        "id": charge_id,
+        "client_id": data.client_id,
+        "client_name": client_doc["name"],
+        "amount": float(data.amount),
+        "description": data.description,
+        "due_date": data.due_date,
+        "status": "pendente",
+        "payment_status": "pending",
+        "payment_link": payment_link,
+        "session_id": session_id,
+        "user_id": user["id"],
+        "created_at": now,
+        "updated_at": now
+    }
+    
+    await db.payment_transactions.insert_one(charge_doc)
+    
+    return {
+        "id": charge_id,
+        "client_id": data.client_id,
+        "client_name": client_doc["name"],
+        "amount": float(data.amount),
+        "description": data.description,
+        "due_date": data.due_date,
+        "status": "pendente",
+        "payment_link": payment_link,
+        "session_id": session_id,
+        "created_at": now
+    }
+
+@api_router.get("/charges/client/{client_id}")
+async def get_client_charges(client_id: str, user: dict = Depends(get_current_user)):
+    """Lista cobranças de um cliente"""
+    charges = await db.payment_transactions.find(
+        {"client_id": client_id, "user_id": user["id"]}, 
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    return charges
+
+@api_router.get("/charges/status/{session_id}")
+async def check_charge_status(request: Request, session_id: str, user: dict = Depends(get_current_user)):
+    """Verifica status do pagamento no Stripe"""
+    try:
+        webhook_url = f"{str(request.base_url).rstrip('/')}/api/webhook/stripe"
+        stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+        
+        status_response: CheckoutStatusResponse = await stripe_checkout.get_checkout_status(session_id)
+        
+        # Atualizar status na collection
+        new_status = "pago" if status_response.payment_status == "paid" else "pendente"
+        if status_response.status == "expired":
+            new_status = "cancelado"
+        
+        await db.payment_transactions.update_one(
+            {"session_id": session_id},
+            {"$set": {
+                "status": new_status,
+                "payment_status": status_response.payment_status,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        return {
+            "status": new_status,
+            "payment_status": status_response.payment_status,
+            "amount": status_response.amount_total / 100,  # centavos para reais
+            "currency": status_response.currency
+        }
+    except Exception as e:
+        logger.error(f"Erro ao verificar status: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao verificar status: {str(e)}")
+
+@api_router.post("/webhook/stripe")
+async def stripe_webhook(request: Request):
+    """Webhook para receber notificações do Stripe"""
+    try:
+        body = await request.body()
+        webhook_url = f"{str(request.base_url).rstrip('/')}/api/webhook/stripe"
+        stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+        
+        webhook_response = await stripe_checkout.handle_webhook(body, request.headers.get("Stripe-Signature"))
+        
+        if webhook_response and webhook_response.session_id:
+            new_status = "pago" if webhook_response.payment_status == "paid" else "pendente"
+            await db.payment_transactions.update_one(
+                {"session_id": webhook_response.session_id},
+                {"$set": {
+                    "status": new_status,
+                    "payment_status": webhook_response.payment_status,
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+        
+        return {"status": "ok"}
+    except Exception as e:
+        logger.error(f"Webhook error: {e}")
+        return {"status": "error", "message": str(e)}
+
+# ============ DASHBOARD STATS EXTENDED ============
+
+@api_router.get("/dashboard/operational-stats")
+async def get_operational_stats(user: dict = Depends(get_current_user)):
+    """Estatísticas operacionais para o dashboard"""
+    # Contar clientes por plano
+    clients = await db.clients.find({"user_id": user["id"]}, {"_id": 0}).to_list(1000)
+    
+    recorrentes = sum(1 for c in clients if c.get("plan") == "recorrente")
+    unicos = sum(1 for c in clients if c.get("plan") != "recorrente")
+    
+    # Pagamentos pendentes (payments collection)
+    pagamentos_pendentes = await db.payments.count_documents({
+        "user_id": user["id"],
+        "paid": False
+    })
+    
+    # Cobranças pendentes (payment_transactions)
+    cobrancas_pendentes = await db.payment_transactions.count_documents({
+        "user_id": user["id"],
+        "status": "pendente"
+    })
+    
+    # Checklists atrasados (da API de operations)
+    week_start = get_week_start()
+    atrasados = 0
+    
+    for client in clients:
+        if client.get("plan") == "recorrente":
+            checklist = client.get("checklist", [])
+            checklist_completo = all(item.get("completed", False) for item in checklist) if checklist else False
+            
+            if checklist_completo:
+                weekly_tasks = client.get("weekly_tasks", [])
+                reset_at = client.get("weekly_tasks_reset_at", "")
+                
+                if weekly_tasks:
+                    weekly_completo = all(task.get("completed", False) for task in weekly_tasks)
+                    if reset_at < week_start and not weekly_completo:
+                        atrasados += 1
+    
+    return {
+        "clientes_recorrentes": recorrentes,
+        "clientes_unicos": unicos,
+        "pagamentos_pendentes": pagamentos_pendentes + cobrancas_pendentes,
+        "checklists_atrasados": atrasados
+    }
 
 # Include router
 app.include_router(api_router)
