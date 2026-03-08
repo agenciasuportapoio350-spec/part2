@@ -6,12 +6,14 @@ import {
   FileText, 
   LogOut,
   ArrowLeft,
-  Shield
+  Shield,
+  UserCheck
 } from "lucide-react";
 import { Button } from "./ui/button";
 
 const adminNavItems = [
   { path: "/admin", icon: LayoutDashboard, label: "Dashboard", end: true },
+  { path: "/admin/pending", icon: UserCheck, label: "Pendentes" },
   { path: "/admin/users", icon: Users, label: "Usuários" },
   { path: "/admin/audit", icon: FileText, label: "Auditoria" },
 ];

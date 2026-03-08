@@ -49,15 +49,8 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (name, email, password) => {
     const response = await api.post("/auth/register", { name, email, password });
-    const { access_token, user: userData } = response.data;
-    
-    localStorage.setItem("rankflow_token", access_token);
-    localStorage.setItem("rankflow_user", JSON.stringify(userData));
-    api.defaults.headers.common["Authorization"] = `Bearer ${access_token}`;
-    
-    setUser(userData);
-    setIsImpersonating(false);
-    return userData;
+    // Não faz login automático - retorna apenas a mensagem
+    return response.data;
   };
 
   const logout = () => {

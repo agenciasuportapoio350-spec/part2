@@ -27,7 +27,7 @@ export default function AgendaPage() {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    task_type: "outro",
+    task_type: "unico",
     due_date: new Date().toISOString().split("T")[0],
     client_id: "none",
     lead_id: "none",

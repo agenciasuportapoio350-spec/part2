@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../components/ui/dropdown-menu";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
+import { CurrencyInput } from "../components/CurrencyInput";
 import { toast } from "sonner";
 import { Plus, MoreVertical, Phone, Mail, Building, Calendar, DollarSign, Bell, Trash2, UserCheck, GripVertical, MessageCircle, RefreshCw, User } from "lucide-react";
 
@@ -309,14 +310,10 @@ export default function CRMPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Valor do Contrato (R$)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0,00"
-                  value={formData.contract_value || ""}
-                  onChange={(e) => setFormData({ ...formData, contract_value: e.target.value === "" ? 0 : parseFloat(e.target.value) })}
+                <Label>Valor do Contrato</Label>
+                <CurrencyInput
+                  value={formData.contract_value}
+                  onChange={(value) => setFormData({ ...formData, contract_value: value })}
                   data-testid="lead-value-input"
                 />
               </div>

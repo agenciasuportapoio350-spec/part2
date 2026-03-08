@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { CurrencyInput } from "../components/CurrencyInput";
 import { toast } from "sonner";
 import { Plus, DollarSign, TrendingUp, Clock, Check, X, Trash2, RefreshCw, AlertCircle, CalendarClock } from "lucide-react";
 
@@ -469,15 +470,10 @@ export default function FinancePage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Valor (R$) *</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0,00"
-                  value={formData.amount || ""}
-                  onChange={(e) => setFormData({ ...formData, amount: e.target.value === "" ? 0 : parseFloat(e.target.value) })}
-                  required
+                <Label>Valor *</Label>
+                <CurrencyInput
+                  value={formData.amount}
+                  onChange={(value) => setFormData({ ...formData, amount: value })}
                   data-testid="payment-amount-input"
                 />
               </div>

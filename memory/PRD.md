@@ -74,6 +74,12 @@ Sistema de gestão para agências de marketing digital que gerenciam perfis de c
 
 ## What's Been Implemented
 
+### 08/03/2026 - Correções de Testes (v1.3.0)
+1. ✅ Agenda: Campo "Tipo" simplificado (Recorrente/Único)
+2. ✅ Máscara de moeda BRL em todos os campos de valor
+3. ✅ Cadastro com aprovação admin (status pending → active)
+4. ✅ Login mobile: Logomarca agora aparece
+
 ### 05/03/2026 - Painel de Operação (v1.2.0)
 1. ✅ Nova página /operations com listas filtradas por prioridade
 2. ✅ Dashboard com contadores clicáveis (Atrasados/Pendentes/Onboarding)

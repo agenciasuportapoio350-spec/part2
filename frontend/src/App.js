@@ -14,6 +14,7 @@ import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 import AdminUsersPage from "./pages/admin/AdminUsersPage";
 import AdminUserDetailPage from "./pages/admin/AdminUserDetailPage";
 import AdminAuditPage from "./pages/admin/AdminAuditPage";
+import AdminPendingUsersPage from "./pages/admin/AdminPendingUsersPage";
 import Layout from "./components/Layout";
 import AdminLayout from "./components/AdminLayout";
 import "./App.css";
@@ -104,6 +105,7 @@ function AppRoutes() {
         </AdminRoute>
       }>
         <Route index element={<AdminDashboardPage />} />
+        <Route path="pending" element={<AdminPendingUsersPage />} />
         <Route path="users" element={<AdminUsersPage />} />
         <Route path="users/:id" element={<AdminUserDetailPage />} />
         <Route path="audit" element={<AdminAuditPage />} />

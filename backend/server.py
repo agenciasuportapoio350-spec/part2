@@ -345,7 +345,7 @@ async def init_super_admin():
 
 # ============ AUTH ROUTES ============
 
-@api_router.post("/auth/register", response_model=TokenResponse)
+@api_router.post("/auth/register")
 async def register(data: UserCreate):
     existing = await db.users.find_one({"email": data.email})
     if existing:
@@ -360,22 +360,18 @@ async def register(data: UserCreate):
         "email": data.email,
         "password": hash_password(data.password),
         "role": "USER",
-        "status": "active",
+        "status": "pending",  # Novo usuário fica pendente até aprovação
         "plan": "free",
         "plan_value": 0,
         "plan_status": "active",
         "plan_expires_at": None,
-        "last_login_at": now,
+        "last_login_at": None,
         "created_at": now,
         "updated_at": now
     }
     await db.users.insert_one(user_doc)
     
-    token = create_token(user_id)
-    return TokenResponse(
-        access_token=token,
-        user=UserResponse(id=user_id, name=data.name, email=data.email, role="USER", status="active", created_at=now)
-    )
+    return {"message": "Cadastro realizado com sucesso! Aguarde a aprovação do administrador."}
 
 @api_router.post("/auth/login", response_model=TokenResponse)
 async def login(data: UserLogin):
@@ -388,6 +384,9 @@ async def login(data: UserLogin):
     
     if user.get("status") == "paused":
         raise HTTPException(status_code=403, detail="Conta pausada temporariamente. Entre em contato com o suporte.")
+    
+    if user.get("status") == "pending":
+        raise HTTPException(status_code=403, detail="Cadastro aguardando aprovação do administrador.")
     
     # Update last login
     now = datetime.now(timezone.utc).isoformat()
@@ -1273,6 +1272,13 @@ async def list_users(
     
     return {"users": users, "total": total, "skip": skip, "limit": limit}
 
+# Listar Usuários Pendentes (DEVE VIR ANTES DE /admin/users/{user_id})
+@api_router.get("/admin/users/pending")
+async def get_pending_users(admin: dict = Depends(get_super_admin)):
+    """List all pending users awaiting approval"""
+    users = await db.users.find({"status": "pending"}, {"_id": 0, "password": 0}).sort("created_at", -1).to_list(100)
+    return users
+
 # Get User Details (Admin)
 @api_router.get("/admin/users/{user_id}")
 async def get_user_details(user_id: str, admin: dict = Depends(get_super_admin)):
@@ -1325,7 +1331,8 @@ async def update_user_status(user_id: str, data: UserStatusUpdate, admin: dict =
     action_map = {
         "blocked": "block_user",
         "paused": "pause_user", 
-        "active": "activate_user"
+        "active": "activate_user",
+        "pending": "set_pending"
     }
     action = action_map.get(data.status, "update_status")
     await create_audit_log(admin, action, user_id, user["email"], {"old_status": old_status, "new_status": data.status})
@@ -1333,9 +1340,48 @@ async def update_user_status(user_id: str, data: UserStatusUpdate, admin: dict =
     status_messages = {
         "blocked": "bloqueado",
         "paused": "pausado",
-        "active": "ativado"
+        "active": "ativado",
+        "pending": "marcado como pendente"
     }
     return {"message": f"Usuário {status_messages.get(data.status, 'atualizado')} com sucesso"}
+
+# Aprovar Usuário Pendente
+@api_router.post("/admin/users/{user_id}/approve")
+async def approve_user(user_id: str, admin: dict = Depends(get_super_admin)):
+    """Approve a pending user"""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
+    if user.get("status") != "pending":
+        raise HTTPException(status_code=400, detail="Usuário não está pendente")
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"status": "active", "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    await create_audit_log(admin, "approve_user", user_id, user["email"], {"action": "approved"})
+    return {"message": f"Usuário {user['name']} aprovado com sucesso"}
+
+# Rejeitar Usuário Pendente  
+@api_router.post("/admin/users/{user_id}/reject")
+async def reject_user(user_id: str, admin: dict = Depends(get_super_admin)):
+    """Reject a pending user"""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
+    if user.get("status") != "pending":
+        raise HTTPException(status_code=400, detail="Usuário não está pendente")
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"status": "blocked", "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    await create_audit_log(admin, "reject_user", user_id, user["email"], {"action": "rejected"})
+    return {"message": f"Usuário {user['name']} rejeitado"}
 
 # Update User Role
 @api_router.put("/admin/users/{user_id}/role")

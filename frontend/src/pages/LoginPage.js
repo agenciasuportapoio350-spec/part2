@@ -32,8 +32,10 @@ export default function LoginPage() {
           setLoading(false);
           return;
         }
-        await register(formData.name, formData.email, formData.password);
-        toast.success("Conta criada com sucesso!");
+        const response = await register(formData.name, formData.email, formData.password);
+        toast.success(response?.message || "Cadastro realizado! Aguarde aprovação do administrador.");
+        setIsLogin(true);
+        setFormData({ name: "", email: "", password: "" });
       }
     } catch (error) {
       const message = error.response?.data?.detail || "Erro ao processar requisição";
@@ -91,8 +93,17 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-8 bg-slate-50">
         <Card className="w-full max-w-md border-0 shadow-xl" data-testid="auth-card">
           <CardHeader className="space-y-1 pb-6">
-            <div className="lg:hidden mb-4">
-              <h1 className="text-3xl font-bold text-primary">RankFlow</h1>
+            <div className="lg:hidden mb-6 flex justify-center">
+              <img 
+                src="/logo-full.png" 
+                alt="RankFlow" 
+                className="h-12 w-auto"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.nextSibling.style.display = 'block';
+                }}
+              />
+              <h1 className="text-3xl font-bold text-primary hidden">RankFlow</h1>
             </div>
             <CardTitle className="text-2xl font-bold tracking-tight">
               {isLogin ? "Bem-vindo de volta" : "Criar conta"}

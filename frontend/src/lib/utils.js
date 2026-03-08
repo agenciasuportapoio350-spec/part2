@@ -88,13 +88,38 @@ export const PIPELINE_STAGES = {
 };
 
 export const TASK_TYPES = {
-  onboarding: { label: "Onboarding", color: "violet" },
   recorrente: { label: "Recorrente", color: "blue" },
-  follow_up: { label: "Follow-up", color: "amber" },
-  outro: { label: "Outro", color: "slate" },
+  unico: { label: "Único", color: "slate" },
 };
 
 export const PAYMENT_TYPES = {
   pontual: { label: "Pontual", color: "blue" },
   recorrente: { label: "Recorrente", color: "emerald" },
 };
+
+// Máscara de moeda BRL
+export function formatCurrencyInput(value) {
+  // Remove tudo exceto números
+  const numbers = value.replace(/\D/g, '');
+  
+  if (!numbers) return '';
+  
+  // Converte para centavos e formata
+  const cents = parseInt(numbers, 10);
+  const reais = cents / 100;
+  
+  return reais.toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+export function parseCurrencyToNumber(value) {
+  if (!value) return 0;
+  // Remove R$, pontos e troca vírgula por ponto
+  const clean = value.toString()
+    .replace(/R\$\s?/g, '')
+    .replace(/\./g, '')
+    .replace(',', '.');
+  return parseFloat(clean) || 0;
+}
